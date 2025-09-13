@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AspNetCore.OpenApi.Xml/AspNetCore.OpenApi.Xml.csproj" />
+  <Project Path="OpenApi.Xml.Core/OpenApi.Xml.Core.csproj" />
+</Solution>
