@@ -24,7 +24,12 @@ app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
     return Results.Text(xml, "application/xml");
 });
 
+// 映射 API 文档页面
+app.MapApiDocumentationPage();
+
 // 示例根端点
-app.MapGet("/", () => "Demo Web API for XML Doc");
+app.MapGet("/", () => "Demo Web API for XML Doc - Visit /api-doc for documentation page");
+
+app.MapControllers();
 
 app.Run();
