@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -25,7 +26,7 @@ public static class EndpointRouteBuilderExtensions
         {
             var document = generator.Generate(title ?? "API Documentation", version ?? "1.0");
             var html = pageService.GenerateHtml(document);
-            return Results.Content(html, "text/html; charset=utf-8");
+            return Results.Content(html, "text/html; charset=utf-8", Encoding.UTF8);
         });
         
         return endpoints;
