@@ -9,8 +9,12 @@ AspNetCore.OpenApi.Xml.sln
 │  ├─ Models/ApiDocument.cs        // ApiDocument / Endpoint / ApiRequest / ApiResponse / ApiSchema / ApiField
 │  └─ Serialization/ApiDocumentSerializer.cs
 └─ AspNetCore.OpenApi.Xml          // 基于 ApiExplorer 的文档生成器及 DI 扩展
-   ├─ Services/ApiXmlDocumentGenerator.cs
-   └─ Extensions/ServiceCollectionExtensions.cs
+   ├─ Services/
+   │  ├─ ApiXmlDocumentGenerator.cs            // XML 文档生成服务
+   │  └─ ApiDocumentationPageService.cs        // HTML 文档页面生成服务
+   └─ Extensions/
+      ├─ ServiceCollectionExtensions.cs        // DI 注册扩展
+      └─ EndpointRouteBuilderExtensions.cs     // 路由映射扩展
 ```
 
 ## 核心模型 (Models)
@@ -43,12 +47,34 @@ var doc2 = ApiDocumentSerializer.FromXml(xml);
 ```
 
 ## DI 注册与使用
+
+### XML 文档端点
 ```csharp
 builder.Services.AddApiXmlDocumentGenerator();
 
 app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
     Results.Text(gen.GenerateXml("My API", "v1"), "application/xml"));
 ```
+
+### HTML 文档页面
+```csharp
+builder.Services.AddApiXmlDocumentGenerator();
+
+// 映射文档页面到 /api-doc (可自定义路径)
+app.MapApiDocumentationPage();
+
+// 或者指定自定义路径、标题和版本
+app.MapApiDocumentationPage("/docs", "My API", "v1.0");
+```
+
+### 文档页面功能
+- **接口列表**：按控制器分组显示，支持折叠展开
+- **接口详情**：显示 HTTP 方法、路由、请求参数（路由/查询/头部）、请求体、响应格式
+- **类型模态框**：点击类型名称可弹出模态框查看类型详细信息
+  - 显示字段列表及验证规则（最小/最大长度、范围、正则表达式等）
+  - 支持嵌套类型点击查看
+  - 显示枚举成员及描述
+- **响应式设计**：GitHub 风格的清晰 UI
 
 ## 设计取舍
 | 方面 | 决策 | 原因 |
@@ -80,7 +106,9 @@ app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
 | 修改模型 | OpenApi.Xml.Core/Models/ApiDocument.cs |
 | 增加序列化能力 | OpenApi.Xml.Core/Serialization/ApiDocumentSerializer.cs |
 | 生成逻辑扩展 | AspNetCore.OpenApi.Xml/Services/ApiXmlDocumentGenerator.cs |
+| HTML 文档页面生成 | AspNetCore.OpenApi.Xml/Services/ApiDocumentationPageService.cs |
 | 注入扩展 | AspNetCore.OpenApi.Xml/Extensions/ServiceCollectionExtensions.cs |
+| 路由映射扩展 | AspNetCore.OpenApi.Xml/Extensions/EndpointRouteBuilderExtensions.cs |
 
 ## License
 待补充（如 MIT）。
