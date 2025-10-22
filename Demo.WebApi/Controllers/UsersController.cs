@@ -8,8 +8,20 @@ namespace Demo.WebApi.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
+    /// <summary>
+    /// Get a paginated list of users
+    /// </summary>
+    /// <param name="page">The page number (1-based)</param>
+    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="search">Optional search term to filter users</param>
+    /// <param name="sortBy">Optional field to sort by</param>
+    /// <returns>A list of users</returns>
     [HttpGet]
-    public ActionResult<IEnumerable<UserDto>> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public ActionResult<IEnumerable<UserDto>> GetUsers(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null)
     {
         var data = Enumerable.Range(1, pageSize).Select(i =>
             new UserDto(
@@ -21,6 +33,10 @@ public class UsersController : ControllerBase
         return Ok(data);
     }
 
+    /// <summary>
+    /// Get user dictionary with detailed information
+    /// </summary>
+    /// <returns>A dictionary of users keyed by user identifier</returns>
     // 字典返回测试: key => 用户标识, value => 详细信息
     [HttpGet("dict")]
     public ActionResult<Dictionary<string, UserDetailDto>> GetUsersDictionary()
@@ -50,10 +66,19 @@ public class UsersController : ControllerBase
         return Ok(dict);
     }
 
+    /// <summary>
+    /// Get all available role types
+    /// </summary>
+    /// <returns>List of role type names</returns>
     // 枚举测试：返回所有角色枚举
     [HttpGet("roles")]
     public ActionResult<IEnumerable<string>> GetRoleKinds() => Ok(Enum.GetNames<RoleKind>());
 
+    /// <summary>
+    /// Get a specific user by ID
+    /// </summary>
+    /// <param name="id">The user ID</param>
+    /// <returns>User details</returns>
     [HttpGet("{id:int}")]
     public ActionResult<UserDetailDto> GetUser(int id)
     {
@@ -77,6 +102,11 @@ public class UsersController : ControllerBase
         ));
     }
 
+    /// <summary>
+    /// Create a new user
+    /// </summary>
+    /// <param name="request">The user creation request</param>
+    /// <returns>The created user</returns>
     [HttpPost]
     public ActionResult<UserDetailDto> Create([FromBody] CreateUserRequest request)
     {
@@ -99,6 +129,51 @@ public class UsersController : ControllerBase
         );
         return CreatedAtAction(nameof(GetUser), new { id = created.Id }, created);
     }
+
+    /// <summary>
+    /// Update an existing user
+    /// </summary>
+    /// <param name="id">The user ID to update</param>
+    /// <param name="request">The update request data</param>
+    /// <returns>The updated user</returns>
+    [HttpPut("{id:int}")]
+    public ActionResult<UserDetailDto> Update(int id, [FromBody] UpdateUserRequest request)
+    {
+        if (id <= 0) return NotFound();
+        
+        var updated = new UserDetailDto(
+            Id: id,
+            Name: request.Name,
+            Email: request.Email,
+            Roles: request.Roles?.ToArray() ?? Array.Empty<string>(),
+            CreatedAt: DateTime.UtcNow.AddDays(-30), // Simulated existing creation date
+            Profile: new UserProfile
+            {
+                Age = request.Age ?? 0,
+                Address = request.Address,
+                BirthDate = request.BirthDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-20)),
+                PreferredContactTime = request.PreferredContactTime ?? new TimeOnly(9, 0)
+            },
+            Tags: request.Tags?.ToArray() ?? Array.Empty<string>(),
+            Metadata: request.Metadata ?? new Dictionary<string, string>(),
+            Extra: request.ExtraProfiles ?? new Dictionary<string, UserProfile>()
+        );
+        return Ok(updated);
+    }
+
+    /// <summary>
+    /// Delete a user by ID
+    /// </summary>
+    /// <param name="id">The user ID to delete</param>
+    /// <param name="reason">Optional reason for deletion</param>
+    /// <returns>No content on success</returns>
+    [HttpDelete("{id:int}")]
+    public ActionResult Delete(int id, [FromQuery] string? reason = null)
+    {
+        if (id <= 0) return NotFound();
+        // In a real application, this would delete the user from the database
+        return NoContent();
+    }
 }
 
 public enum RoleKind
@@ -110,6 +185,18 @@ public enum RoleKind
 
 public record CreateUserRequest(
     [property: Required, StringLength(50, MinimumLength = 3), RegularExpression("^[A-Za-z0-9_]+$")] string Name,
+    [property: Required, EmailAddress] string Email,
+    [property: Range(0,120)] int? Age,
+    Address? Address,
+    IEnumerable<string>? Tags,
+    IEnumerable<string>? Roles,
+    Dictionary<string, string>? Metadata,
+    DateOnly? BirthDate,
+    TimeOnly? PreferredContactTime,
+    Dictionary<string, UserProfile>? ExtraProfiles);
+
+public record UpdateUserRequest(
+    [property: Required, StringLength(50, MinimumLength = 3)] string Name,
     [property: Required, EmailAddress] string Email,
     [property: Range(0,120)] int? Age,
     Address? Address,
