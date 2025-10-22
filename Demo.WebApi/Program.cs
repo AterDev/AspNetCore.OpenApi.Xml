@@ -32,4 +32,7 @@ app.MapGet("/", () => "Demo Web API for XML Doc - Visit /api-doc for documentati
 
 app.MapControllers();
 
+// Map controllers
+app.MapControllers();
+
 app.Run();
