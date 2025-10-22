@@ -27,4 +27,7 @@ app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
 // 示例根端点
 app.MapGet("/", () => "Demo Web API for XML Doc");
 
+// Map controllers
+app.MapControllers();
+
 app.Run();
