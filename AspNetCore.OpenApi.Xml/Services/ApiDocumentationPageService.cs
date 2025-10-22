@@ -16,7 +16,8 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
         var jsonData = JsonSerializer.Serialize(document, new JsonSerializerOptions 
         { 
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
+            WriteIndented = false,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         });
 
         return $@"<!DOCTYPE html>
@@ -324,9 +325,11 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
                 groupedEndpoints[controller].forEach(endpoint => {{
                     const item = document.createElement('div');
                     item.className = 'endpoint-item';
+                    // Prioritize description, then path
+                    const displayText = endpoint.description || endpoint.path;
                     item.innerHTML = `
                         <span class=""badge method-badge method-${{endpoint.method.toLowerCase()}}"">${{endpoint.method}}</span>
-                        <span class=""endpoint-path"">${{endpoint.path}}</span>
+                        <span class=""endpoint-path"">${{displayText}}</span>
                     `;
                     item.onclick = () => {{
                         document.querySelectorAll('.endpoint-item').forEach(i => i.classList.remove('active'));
@@ -352,9 +355,11 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             const detail = document.getElementById('endpoint-detail');
             detail.style.display = 'block';
 
+            // Use description if available, otherwise use path - avoid showing full controller/method names
+            const title = endpoint.description || endpoint.path;
             let html = `
                 <div class=""endpoint-detail-header"">
-                    <h2 class=""endpoint-title"">${{endpoint.summary || endpoint.path}}</h2>
+                    <h2 class=""endpoint-title"">${{title}}</h2>
                     <div class=""endpoint-meta"">
                         <span class=""badge method-badge method-${{endpoint.method.toLowerCase()}}"">${{endpoint.method}}</span>
                         <code>${{endpoint.path}}</code>
