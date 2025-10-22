@@ -9,6 +9,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddEndpointsApiExplorer(); // ensure ApiExplorer is enabled
         services.AddSingleton<IApiXmlDocumentGenerator, ApiXmlDocumentGenerator>();
+        services.AddSingleton<IApiDocumentationPageService, ApiDocumentationPageService>();
         return services;
     }
 }
