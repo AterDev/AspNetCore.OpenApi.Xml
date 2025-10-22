@@ -224,7 +224,4 @@ public record PagedResult<T>(List<T> Items, int TotalCount, int Page, int PageSi
 /// <summary>
 /// Page request parameters
 /// </summary>
-public record PageRequest(
-    [property: Range(1, int.MaxValue)] int Page = 1,
-    [property: Range(1, 100)] int PageSize = 10
-);
+public record PageRequest([Range(1, int.MaxValue)] int Page = 1, [Range(1, 100)] int PageSize = 10);
