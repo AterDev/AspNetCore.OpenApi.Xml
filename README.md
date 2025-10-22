@@ -2,6 +2,11 @@
 
 为 ASP.NET Core 应用提供自定义 XML API 文档生成和 HTML 文档页面。
 
+## 系统要求
+
+- .NET 10.0 或更高版本（支持预览版本）
+- 如果使用 .NET 9.0，请将项目文件中的 `<TargetFramework>net10.0</TargetFramework>` 改为 `<TargetFramework>net9.0</TargetFramework>`
+
 ## 特性
 
 - ✅ 基于 ASP.NET Core ApiExplorer 自动生成 API 文档
