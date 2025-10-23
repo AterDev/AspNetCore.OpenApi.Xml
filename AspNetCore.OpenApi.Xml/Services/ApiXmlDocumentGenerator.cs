@@ -1,15 +1,14 @@
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using OpenApi.Xml.Core.Models;
+using System.Collections;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using OpenApi.Xml.Core.Models;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
-using System.Linq;
-using System.Collections;
 
 namespace AspNetCore.OpenApi.Xml.Services;
 
@@ -21,7 +20,7 @@ public interface IApiXmlDocumentGenerator
 
 public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider provider, IXmlDocumentationReader xmlDocReader) : IApiXmlDocumentGenerator
 {
-    private readonly Dictionary<Type, ApiModel> _modelCache = new();
+    private readonly Dictionary<Type, ApiModel> _modelCache = [];
     private static readonly HashSet<Type> _primitiveTypes = new(
         new[]
         {
@@ -33,7 +32,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
     public ApiDocument Generate(string? title = null, string? version = null)
     {
         _modelCache.Clear();
-        
+
         // Load XML documentation for all loaded assemblies
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -43,10 +42,9 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             }
             catch
             {
-                // Ignore assemblies that can't be processed
             }
         }
-        
+
         var doc = new ApiDocument { Title = title ?? "API Documentation", Version = version ?? "1.0" };
         int opIndex = 0;
 
@@ -119,14 +117,14 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                     };
                     endpoint.Responses.Add(response);
                 }
-                
+
                 // If no responses were defined, add a default 200 response with application/json
                 if (endpoint.Responses.Count == 0)
                 {
                     endpoint.Responses.Add(new ApiResponse
                     {
                         StatusCode = 200,
-                        ContentType = "application/json"
+                        ContentType = ""
                     });
                 }
 
@@ -151,9 +149,9 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
 
     private static IEnumerable<Attribute> GetParameterAttributes(ApiParameterDescription param)
     {
-        if (param.ParameterDescriptor is ControllerParameterDescriptor cpd)
-            return cpd.ParameterInfo.GetCustomAttributes();
-        return Enumerable.Empty<Attribute>();
+        return param.ParameterDescriptor is ControllerParameterDescriptor cpd
+            ? cpd.ParameterInfo.GetCustomAttributes()
+            : Enumerable.Empty<Attribute>();
     }
 
     private static bool NeedsModelReference(Type? type)
@@ -167,8 +165,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             var et = type.GetElementType();
             return et != null && NeedsModelReference(et);
         }
-        if (IsSimpleEnumerablePrimitive(type)) return false;
-        return true;
+        return !IsSimpleEnumerablePrimitive(type);
     }
 
     private ApiModel GetOrBuildModel(Type type)
@@ -284,7 +281,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
         }
 
         // Object / Custom
-        if (model.ModelType == ModelType.Custom || model.ModelType == ModelType.Object)
+        if (model.ModelType is ModelType.Custom or ModelType.Object)
         {
             model.ModelType = ModelType.Object;
             foreach (var prop in coreType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -357,7 +354,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
     {
         if (t == null) return "object";
         t = Nullable.GetUnderlyingType(t) ?? t;
-        
+
         // Handle generic types - display with type parameters
         if (t.IsGenericType)
         {
@@ -367,7 +364,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             var typeName = $"{baseName}<{argNames}>";
             return includeNamespace ? $"{t.Namespace}.{typeName}" : typeName;
         }
-        
+
         return t switch
         {
             var _ when t == typeof(string) => includeNamespace ? "System.string" : "string",
