@@ -29,20 +29,35 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             typeof(DateOnly), typeof(TimeOnly), typeof(TimeSpan)
         });
 
+    private ApiDocument? _cachedDocument;
+    private bool _xmlDocumentationLoaded;
+
     public ApiDocument Generate(string? title = null, string? version = null)
     {
+        // Return cached document if already generated with same parameters
+        if (_cachedDocument != null && 
+            _cachedDocument.Title == (title ?? "API Documentation") && 
+            _cachedDocument.Version == (version ?? "1.0"))
+        {
+            return _cachedDocument;
+        }
+
         _modelCache.Clear();
 
-        // Load XML documentation for all loaded assemblies
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        // Load XML documentation only once
+        if (!_xmlDocumentationLoaded)
         {
-            try
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                xmlDocReader.LoadXmlDocumentation(assembly);
+                try
+                {
+                    xmlDocReader.LoadXmlDocumentation(assembly);
+                }
+                catch
+                {
+                }
             }
-            catch
-            {
-            }
+            _xmlDocumentationLoaded = true;
         }
 
         var doc = new ApiDocument { Title = title ?? "API Documentation", Version = version ?? "1.0" };
@@ -135,6 +150,9 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
         doc.Models.AddRange(_modelCache.Values
             .Where(m => m.ModelType != ModelType.Primitive && !(m.ModelType == ModelType.Array && m.ElementType != null && m.ElementType.ModelType == ModelType.Primitive))
             .OrderBy(m => m.Id));
+        
+        // Cache the generated document
+        _cachedDocument = doc;
         return doc;
     }
 
@@ -168,10 +186,10 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
         return !IsSimpleEnumerablePrimitive(type);
     }
 
-    private ApiModel GetOrBuildModel(Type type)
+    private ApiModel GetOrBuildModel(Type type, int depth = 0)
     {
         type = Nullable.GetUnderlyingType(type) ?? type;
-        return BuildModel(type);
+        return BuildModel(type, depth);
     }
 
     private ApiModel BuildModel(Type type, int depth = 0)
@@ -224,7 +242,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             model.ArrayRank = coreType.GetArrayRank();
             var et = coreType.GetElementType();
             if (et != null && NeedsModelReference(et))
-                model.ElementType = GetOrBuildModel(et);
+                model.ElementType = GetOrBuildModel(et, depth + 1);
             else if (et != null)
                 model.ElementType = new ApiModel { Id = MapPrimitiveName(et, true), Name = MapPrimitiveName(et, false), ModelType = ModelType.Primitive };
             return model;
@@ -235,8 +253,8 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             model.ModelType = ModelType.Dictionary;
             var iface = coreType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
             var args = iface.GetGenericArguments();
-            model.KeyType = NeedsModelReference(args[0]) ? GetOrBuildModel(args[0]) : new ApiModel { Id = MapPrimitiveName(args[0], true), Name = MapPrimitiveName(args[0], false), ModelType = ModelType.Primitive };
-            model.ValueType = NeedsModelReference(args[1]) ? GetOrBuildModel(args[1]) : new ApiModel { Id = MapPrimitiveName(args[1], true), Name = MapPrimitiveName(args[1], false), ModelType = ModelType.Primitive };
+            model.KeyType = NeedsModelReference(args[0]) ? GetOrBuildModel(args[0], depth + 1) : new ApiModel { Id = MapPrimitiveName(args[0], true), Name = MapPrimitiveName(args[0], false), ModelType = ModelType.Primitive };
+            model.ValueType = NeedsModelReference(args[1]) ? GetOrBuildModel(args[1], depth + 1) : new ApiModel { Id = MapPrimitiveName(args[1], true), Name = MapPrimitiveName(args[1], false), ModelType = ModelType.Primitive };
             return model;
         }
 
@@ -252,7 +270,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                     Name = $"Item{i++}",
                     Type = MapPrimitiveName(arg),
                     Required = true,
-                    ModelId = needs ? GetOrBuildModel(arg).Id : null
+                    ModelId = needs ? GetOrBuildModel(arg, depth + 1).Id : null
                 });
             }
             return model;
@@ -264,7 +282,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             foreach (var ga in coreType.GetGenericArguments())
             {
                 if (NeedsModelReference(ga))
-                    model.GenericArguments.Add(GetOrBuildModel(ga));
+                    model.GenericArguments.Add(GetOrBuildModel(ga, depth + 1));
             }
             if (typeof(IEnumerable).IsAssignableFrom(coreType))
             {
@@ -272,7 +290,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 if (element != null)
                 {
                     model.ModelType = ModelType.Array;
-                    model.ElementType = NeedsModelReference(element) ? GetOrBuildModel(element) : new ApiModel { Id = MapPrimitiveName(element, true), Name = MapPrimitiveName(element, false), ModelType = ModelType.Primitive };
+                    model.ElementType = NeedsModelReference(element) ? GetOrBuildModel(element, depth + 1) : new ApiModel { Id = MapPrimitiveName(element, true), Name = MapPrimitiveName(element, false), ModelType = ModelType.Primitive };
                     return model;
                 }
             }
@@ -296,7 +314,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 foreach (var a in prop.GetCustomAttributes())
                     ApplyValidation(field, a);
                 if (NeedsModelReference(prop.PropertyType))
-                    field.ModelId = GetOrBuildModel(prop.PropertyType).Id;
+                    field.ModelId = GetOrBuildModel(prop.PropertyType, depth + 1).Id;
                 model.Fields.Add(field);
             }
             if (model.Fields.Count == 0) model.ModelType = ModelType.Custom;
