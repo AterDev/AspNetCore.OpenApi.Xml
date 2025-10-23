@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using AspNetCore.OpenApi.Xml.Components;
 
 namespace AspNetCore.OpenApi.Xml.Extensions;
 
@@ -18,8 +17,9 @@ public static class EndpointRouteBuilderExtensions
     /// </remarks>
     public static IEndpointRouteBuilder MapApiDocument(this IEndpointRouteBuilder endpoints, string pattern = "/api-doc")
     {
-        // Map Blazor component endpoints
-        endpoints.MapRazorComponents<ApiDocumentation>();
+        // Map Blazor component endpoints with interactive server mode
+        endpoints.MapRazorComponents<Components.App>()
+            .AddInteractiveServerRenderMode();
 
         return endpoints;
     }

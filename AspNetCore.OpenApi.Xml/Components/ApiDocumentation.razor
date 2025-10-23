@@ -1,67 +1,54 @@
 @page "/ApiDocumentation"
+@rendermode InteractiveServer
 @inject IJSRuntime JSRuntime
 @inject IApiXmlDocumentGenerator Generator
 
-<!DOCTYPE html>
-<html lang="@CurrentLanguage">
-<head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@Document.Title - API Documentation</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="/_content/AspNetCore.OpenApi.Xml/css/api-doc.css" />
-</head>
-<body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1>@Document.Title</h1>
-                <div class="sidebar-version">
-                    <i class="bi bi-tag"></i> <span>@Localize("version")</span>: @Document.Version
-                </div>
-                <div class="header-controls">
-                    <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
-                        <i class="bi @(IsDarkTheme ? "bi-sun-fill" : "bi-moon-fill")"></i>
-                    </button>
-                    <button class="lang-toggle" @onclick="ToggleLanguage" title="Switch language">
-                        @(CurrentLanguage == "zh-CN" ? "EN" : "中文")
-                    </button>
-                </div>
-            </div>
-            <div class="search-container">
-                <input type="text" @bind="SearchText" @bind:event="oninput" class="search-input" placeholder="@Localize("searchEndpoints")" />
-                <i class="bi bi-search search-icon"></i>
-            </div>
-            <div id="api-list" class="p-0">
-                <EndpointList Endpoints="@FilteredEndpoints" OnEndpointSelected="@SelectEndpoint" SelectedEndpoint="@SelectedEndpoint" />
-            </div>
-        </aside>
-        <main class="main-content">
-            @if (SelectedEndpoint == null)
-            {
-                <div class="empty-state">
-                    <i class="bi bi-file-earmark-text"></i>
-                    <h2>@Localize("apiDoc")</h2>
-                    <p class="text-muted">@Localize("selectEndpoint")</p>
-                </div>
-            }
-            else
-            {
-                <EndpointDetail Endpoint="@SelectedEndpoint" Document="@Document" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
-            }
-        </main>
-    </div>
+<PageTitle>@Document.Title - API Documentation</PageTitle>
 
-    @if (ShowModal && SelectedModel != null)
-    {
-        <TypeModal Model="@SelectedModel" Document="@Document" OnClose="@CloseTypeModal" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
-    }
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>@Document.Title</h1>
+            <div class="sidebar-version">
+                <i class="bi bi-tag"></i> <span>@Localize("version")</span>: @Document.Version
+            </div>
+            <div class="header-controls">
+                <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
+                    <i class="bi @(IsDarkTheme ? "bi-sun-fill" : "bi-moon-fill")"></i>
+                </button>
+                <button class="lang-toggle" @onclick="ToggleLanguage" title="Switch language">
+                    @(CurrentLanguage == "zh-CN" ? "EN" : "中文")
+                </button>
+            </div>
+        </div>
+        <div class="search-container">
+            <input type="text" @bind="SearchText" @bind:event="oninput" class="search-input" placeholder="@Localize("searchEndpoints")" />
+            <i class="bi bi-search search-icon"></i>
+        </div>
+        <div id="api-list" class="p-0">
+            <EndpointList Endpoints="@FilteredEndpoints" OnEndpointSelected="@SelectEndpoint" SelectedEndpoint="@SelectedEndpoint" />
+        </div>
+    </aside>
+    <main class="main-content">
+        @if (SelectedEndpoint == null)
+        {
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-text"></i>
+                <h2>@Localize("apiDoc")</h2>
+                <p class="text-muted">@Localize("selectEndpoint")</p>
+            </div>
+        }
+        else
+        {
+            <EndpointDetail Endpoint="@SelectedEndpoint" Document="@Document" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+        }
+    </main>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-</body>
-</html>
+@if (ShowModal && SelectedModel != null)
+{
+    <TypeModal Model="@SelectedModel" Document="@Document" OnClose="@CloseTypeModal" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+}
 
 @code {
     [Parameter]
