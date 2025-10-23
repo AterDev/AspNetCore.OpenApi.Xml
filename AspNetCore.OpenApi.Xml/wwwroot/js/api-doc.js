@@ -450,8 +450,10 @@ function renderModel(model) {
         }
     } else if (model.keyType && model.valueType) {
         // Dictionary type
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
         html += `<div class="p-3">
-            <p class="mb-2"><strong>${t('dictionaryType')}: ${model.name || model.id} &lt; ${model.keyType.name || model.keyType.id}, ${model.valueType.name || model.valueType.id} &gt;</strong></p>
+            <p class="mb-2"><strong>${t('dictionaryType')}: ${model.name || 'Dictionary'}&lt;${keyTypeName}, ${valueTypeName}&gt;</strong></p>
             <p class="mb-1">${t('keyType')}: ${renderModelType(model.keyType)}</p>
             <p class="mb-0">${t('valueType')}: ${renderModelType(model.valueType)}</p>
         </div>`;
@@ -480,10 +482,57 @@ function renderModel(model) {
 
 function renderModelType(model) {
     if (!model) return 'unknown';
-    if (model.id) {
-        return `<span class="type-link" onclick="showTypeModal('${model.id}')">${model.name || model.id}</span>`;
+    
+    // Build a friendly type name with generic parameters
+    let typeName = model.name || model.id || 'unknown';
+    
+    // Handle Dictionary types
+    if (model.keyType && model.valueType) {
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
+        typeName = `${model.name || 'Dictionary'}&lt;${keyTypeName}, ${valueTypeName}&gt;`;
     }
-    return model.name || model.id || 'unknown';
+    // Handle Array/List types
+    else if (model.elementType) {
+        const elemTypeName = renderModelTypeSimple(model.elementType);
+        typeName = `${model.name || 'Array'}&lt;${elemTypeName}&gt;`;
+    }
+    // Handle generic types with generic arguments
+    else if (model.genericArguments && model.genericArguments.length > 0) {
+        const genericParams = model.genericArguments.map(arg => renderModelTypeSimple(arg)).join(', ');
+        typeName = `${model.name || model.id}&lt;${genericParams}&gt;`;
+    }
+    
+    if (model.id) {
+        return `<span class="type-link" onclick="showTypeModal('${model.id}')">${typeName}</span>`;
+    }
+    return typeName;
+}
+
+function renderModelTypeSimple(model) {
+    if (!model) return 'unknown';
+    
+    // Build a simple type name without links
+    let typeName = model.name || model.id || 'unknown';
+    
+    // Handle Dictionary types
+    if (model.keyType && model.valueType) {
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
+        typeName = `${model.name || 'Dictionary'}<${keyTypeName}, ${valueTypeName}>`;
+    }
+    // Handle Array/List types
+    else if (model.elementType) {
+        const elemTypeName = renderModelTypeSimple(model.elementType);
+        typeName = `${model.name || 'Array'}<${elemTypeName}>`;
+    }
+    // Handle generic types with generic arguments
+    else if (model.genericArguments && model.genericArguments.length > 0) {
+        const genericParams = model.genericArguments.map(arg => renderModelTypeSimple(arg)).join(', ');
+        typeName = `${model.name || model.id}<${genericParams}>`;
+    }
+    
+    return typeName;
 }
 
 function renderJsonExample(model) {
