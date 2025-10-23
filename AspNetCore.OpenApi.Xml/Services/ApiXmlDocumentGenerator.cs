@@ -357,6 +357,17 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
     {
         if (t == null) return "object";
         t = Nullable.GetUnderlyingType(t) ?? t;
+        
+        // Handle generic types - display with type parameters
+        if (t.IsGenericType)
+        {
+            var baseName = t.Name.Split('`')[0];
+            var args = t.GetGenericArguments();
+            var argNames = string.Join(", ", args.Select(a => MapPrimitiveName(a, false)));
+            var typeName = $"{baseName}<{argNames}>";
+            return includeNamespace ? $"{t.Namespace}.{typeName}" : typeName;
+        }
+        
         return t switch
         {
             var _ when t == typeof(string) => includeNamespace ? "System.string" : "string",

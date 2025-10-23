@@ -164,7 +164,8 @@ document.addEventListener('DOMContentLoaded', function() {
     currentLang = savedLang || (browserLang.startsWith('zh') ? 'zh-CN' : 'en-US');
     document.getElementById('langToggle').textContent = currentLang === 'zh-CN' ? 'EN' : '中文';
     
-    renderApiList();
+    // Initialize endpoint click handlers on pre-rendered elements
+    initializeEndpointHandlers();
     updateLocalization();
 
     // Setup search functionality
@@ -191,10 +192,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Re-render the current endpoint if one is selected
         const activeEndpoint = document.querySelector('.endpoint-item.active');
         if (activeEndpoint) {
-            const endpointIndex = Array.from(document.querySelectorAll('.endpoint-item')).indexOf(activeEndpoint);
-            const allEndpoints = apiData.endpoints;
-            if (allEndpoints[endpointIndex]) {
-                showEndpoint(allEndpoints[endpointIndex]);
+            const endpointIndex = parseInt(activeEndpoint.getAttribute('data-endpoint-index'));
+            if (!isNaN(endpointIndex) && apiData.endpoints[endpointIndex]) {
+                showEndpoint(apiData.endpoints[endpointIndex]);
             }
         }
     });
@@ -211,62 +211,32 @@ function setTheme(theme) {
     }
 }
 
-function renderApiList() {
-    const groupedEndpoints = {};
-    apiData.endpoints.forEach(endpoint => {
-        const tag = endpoint.tags && endpoint.tags.length > 0 ? endpoint.tags[0] : 'Default';
-        if (!groupedEndpoints[tag]) {
-            groupedEndpoints[tag] = [];
-        }
-        groupedEndpoints[tag].push(endpoint);
+function initializeEndpointHandlers() {
+    // Setup click handlers for controller headers (collapse/expand)
+    document.querySelectorAll('.controller-header').forEach(header => {
+        header.addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+            const collapse = this.nextElementSibling;
+            if (collapse && collapse.classList.contains('endpoint-list')) {
+                if (collapse.style.display === 'none') {
+                    collapse.style.display = 'block';
+                } else {
+                    collapse.style.display = 'none';
+                }
+            }
+        });
     });
 
-    const apiList = document.getElementById('api-list');
-    Object.keys(groupedEndpoints).sort().forEach(controller => {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'controller-group';
-
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'controller-header';
-        headerDiv.innerHTML = `
-            <span class="controller-name">${controller}</span>
-            <i class="bi bi-chevron-down controller-chevron"></i>
-        `;
-
-        const collapse = document.createElement('div');
-        collapse.className = 'endpoint-list';
-        collapse.id = `collapse-${controller.replace(/[^a-zA-Z0-9]/g, '-')}`;
-
-        groupedEndpoints[controller].forEach(endpoint => {
-            const item = document.createElement('div');
-            item.className = 'endpoint-item';
-            // Prioritize summary (XML comment), then path
-            const displayText = endpoint.summary || endpoint.path;
-            item.innerHTML = `
-                <span class="badge method-badge method-${endpoint.method.toLowerCase()}">${endpoint.method}</span>
-                <span class="endpoint-path">${displayText}</span>
-            `;
-            item.onclick = () => {
-                document.querySelectorAll('.endpoint-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                showEndpoint(endpoint);
-            };
-            collapse.appendChild(item);
-        });
-
-        headerDiv.onclick = () => {
-            headerDiv.classList.toggle('collapsed');
-            // Toggle collapse without Bootstrap
-            if (collapse.style.display === 'none') {
-                collapse.style.display = 'block';
-            } else {
-                collapse.style.display = 'none';
+    // Setup click handlers for endpoint items
+    document.querySelectorAll('.endpoint-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.endpoint-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            const endpointIndex = parseInt(this.getAttribute('data-endpoint-index'));
+            if (!isNaN(endpointIndex) && apiData.endpoints[endpointIndex]) {
+                showEndpoint(apiData.endpoints[endpointIndex]);
             }
-        };
-
-        groupDiv.appendChild(headerDiv);
-        groupDiv.appendChild(collapse);
-        apiList.appendChild(groupDiv);
+        });
     });
 }
 
@@ -450,8 +420,10 @@ function renderModel(model) {
         }
     } else if (model.keyType && model.valueType) {
         // Dictionary type
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
         html += `<div class="p-3">
-            <p class="mb-2"><strong>${t('dictionaryType')}: ${model.name || model.id} &lt; ${model.keyType.name || model.keyType.id}, ${model.valueType.name || model.valueType.id} &gt;</strong></p>
+            <p class="mb-2"><strong>${t('dictionaryType')}: ${model.name || 'Dictionary'}&lt;${keyTypeName}, ${valueTypeName}&gt;</strong></p>
             <p class="mb-1">${t('keyType')}: ${renderModelType(model.keyType)}</p>
             <p class="mb-0">${t('valueType')}: ${renderModelType(model.valueType)}</p>
         </div>`;
@@ -480,10 +452,57 @@ function renderModel(model) {
 
 function renderModelType(model) {
     if (!model) return 'unknown';
-    if (model.id) {
-        return `<span class="type-link" onclick="showTypeModal('${model.id}')">${model.name || model.id}</span>`;
+    
+    // Build a friendly type name with generic parameters
+    let typeName = model.name || model.id || 'unknown';
+    
+    // Handle Dictionary types
+    if (model.keyType && model.valueType) {
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
+        typeName = `${model.name || 'Dictionary'}&lt;${keyTypeName}, ${valueTypeName}&gt;`;
     }
-    return model.name || model.id || 'unknown';
+    // Handle Array/List types
+    else if (model.elementType) {
+        const elemTypeName = renderModelTypeSimple(model.elementType);
+        typeName = `${model.name || 'Array'}&lt;${elemTypeName}&gt;`;
+    }
+    // Handle generic types with generic arguments
+    else if (model.genericArguments && model.genericArguments.length > 0) {
+        const genericParams = model.genericArguments.map(arg => renderModelTypeSimple(arg)).join(', ');
+        typeName = `${model.name || model.id}&lt;${genericParams}&gt;`;
+    }
+    
+    if (model.id) {
+        return `<span class="type-link" onclick="showTypeModal('${model.id}')">${typeName}</span>`;
+    }
+    return typeName;
+}
+
+function renderModelTypeSimple(model) {
+    if (!model) return 'unknown';
+    
+    // Build a simple type name without links
+    let typeName = model.name || model.id || 'unknown';
+    
+    // Handle Dictionary types
+    if (model.keyType && model.valueType) {
+        const keyTypeName = renderModelTypeSimple(model.keyType);
+        const valueTypeName = renderModelTypeSimple(model.valueType);
+        typeName = `${model.name || 'Dictionary'}<${keyTypeName}, ${valueTypeName}>`;
+    }
+    // Handle Array/List types
+    else if (model.elementType) {
+        const elemTypeName = renderModelTypeSimple(model.elementType);
+        typeName = `${model.name || 'Array'}<${elemTypeName}>`;
+    }
+    // Handle generic types with generic arguments
+    else if (model.genericArguments && model.genericArguments.length > 0) {
+        const genericParams = model.genericArguments.map(arg => renderModelTypeSimple(arg)).join(', ');
+        typeName = `${model.name || model.id}<${genericParams}>`;
+    }
+    
+    return typeName;
 }
 
 function renderJsonExample(model) {
@@ -629,14 +648,19 @@ function filterEndpoints(searchText) {
         
         endpoints.forEach(item => {
             const endpoint = item.textContent.toLowerCase();
-            // Get the actual endpoint data to search through description and path
-            const endpointIndex = Array.from(document.querySelectorAll('.endpoint-item')).indexOf(item);
-            const endpointData = apiData.endpoints[endpointIndex];
+            // Get the actual endpoint data using the data attribute
+            const endpointIndex = parseInt(item.getAttribute('data-endpoint-index'));
+            const endpointData = !isNaN(endpointIndex) ? apiData.endpoints[endpointIndex] : null;
+            
+            // Also search in data attributes for path, summary, and description
+            const dataPath = item.getAttribute('data-endpoint-path')?.toLowerCase() || '';
+            const dataSummary = item.getAttribute('data-endpoint-summary')?.toLowerCase() || '';
+            const dataDescription = item.getAttribute('data-endpoint-description')?.toLowerCase() || '';
             
             const matchesText = endpoint.includes(search);
-            const matchesPath = endpointData?.path?.toLowerCase().includes(search);
-            const matchesDescription = endpointData?.description?.toLowerCase().includes(search);
-            const matchesSummary = endpointData?.summary?.toLowerCase().includes(search);
+            const matchesPath = dataPath.includes(search) || endpointData?.path?.toLowerCase().includes(search);
+            const matchesDescription = dataDescription.includes(search) || endpointData?.description?.toLowerCase().includes(search);
+            const matchesSummary = dataSummary.includes(search) || endpointData?.summary?.toLowerCase().includes(search);
             
             if (matchesText || matchesPath || matchesDescription || matchesSummary) {
                 item.style.display = '';

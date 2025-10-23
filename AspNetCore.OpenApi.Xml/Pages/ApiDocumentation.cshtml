@@ -40,7 +40,37 @@
         <input type="text" id="endpoint-search" class="search-input" placeholder="Search endpoints..." data-i18n-placeholder="searchEndpoints" />
         <i class="bi bi-search search-icon"></i>
       </div>
-      <div id="api-list" class="p-0"></div>
+      <div id="api-list" class="p-0">
+        @{
+          var groupedEndpoints = Model.Document.Endpoints
+            .GroupBy(e => e.Tags != null && e.Tags.Count > 0 ? e.Tags[0] : "Default")
+            .OrderBy(g => g.Key);
+          
+          foreach (var group in groupedEndpoints)
+          {
+            <div class="controller-group">
+              <div class="controller-header">
+                <span class="controller-name">@group.Key</span>
+                <i class="bi bi-chevron-down controller-chevron"></i>
+              </div>
+              <div class="endpoint-list" id="collapse-@group.Key.Replace(" ", "-")">
+                @foreach (var endpoint in group)
+                {
+                  var displayText = endpoint.Summary ?? endpoint.Path;
+                  <div class="endpoint-item" 
+                       data-endpoint-index="@Model.Document.Endpoints.IndexOf(endpoint)"
+                       data-endpoint-path="@endpoint.Path"
+                       data-endpoint-summary="@(endpoint.Summary ?? "")"
+                       data-endpoint-description="@(endpoint.Description ?? "")">
+                    <span class="badge method-badge method-@endpoint.Method.ToLower()">@endpoint.Method</span>
+                    <span class="endpoint-path">@displayText</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
     </aside>
     <main class="main-content">
       <div class="empty-state" id="empty-state">
