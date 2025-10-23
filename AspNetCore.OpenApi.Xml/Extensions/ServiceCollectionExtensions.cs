@@ -10,7 +10,10 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer(); // ensure ApiExplorer is enabled
         services.AddSingleton<IXmlDocumentationReader, XmlDocumentationReader>();
         services.AddSingleton<IApiXmlDocumentGenerator, ApiXmlDocumentGenerator>();
-        services.AddSingleton<IApiDocumentationPageService, ApiDocumentationPageService>();
+        
+        // Add Razor Pages support for the UI
+        services.AddRazorPages();
+        
         return services;
     }
 }

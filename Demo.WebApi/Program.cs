@@ -17,6 +17,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Enable static files for Razor Pages
+app.UseStaticFiles();
+
 // 暴露 XML 文档端点
 app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
 {
@@ -30,9 +33,6 @@ app.MapApiDocumentationPage();
 // 示例根端点
 app.MapGet("/", () => "Demo Web API for XML Doc - Visit /api-doc for documentation page");
 
-app.MapControllers();
-
-// Map controllers
 app.MapControllers();
 
 app.Run();

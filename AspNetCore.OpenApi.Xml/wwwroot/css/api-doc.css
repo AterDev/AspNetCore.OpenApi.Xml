@@ -1,0 +1,381 @@
+:root {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #fff;
+    --bg-tertiary: #e9ecef;
+    --bg-header: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #495057;
+    --border-color: #dee2e6;
+    --border-color-active: #0d6efd;
+    --sidebar-hover: #e9ecef;
+    --sidebar-active: #e7f1ff;
+    --controller-border: #6c757d;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1d20;
+    --bg-secondary: #212529;
+    --bg-tertiary: #343a40;
+    --bg-header: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    --text-primary: #f8f9fa;
+    --text-secondary: #adb5bd;
+    --text-muted: #ced4da;
+    --border-color: #495057;
+    --border-color-active: #0d6efd;
+    --sidebar-hover: #343a40;
+    --sidebar-active: #1e3a5f;
+    --controller-border: #6c757d;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 300px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 1.5rem 1.25rem;
+    border-bottom: 2px solid var(--border-color-active);
+    background: var(--bg-header);
+    color: white;
+    position: relative;
+}
+
+.sidebar-header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+.sidebar-version {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+}
+
+.header-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.theme-toggle, .lang-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.theme-toggle:hover, .lang-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+}
+
+.controller-group {
+    margin-bottom: 0.5rem;
+}
+
+.controller-header {
+    background: var(--bg-tertiary);
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    border-left: 3px solid var(--controller-border);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.controller-header:hover {
+    background: var(--sidebar-hover);
+    border-left-color: var(--border-color-active);
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.1);
+    transform: translateX(2px);
+}
+
+.controller-header.active {
+    border-left-color: var(--border-color-active);
+    background: var(--sidebar-active);
+}
+
+.controller-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.controller-chevron {
+    transition: transform 0.2s;
+    color: var(--text-secondary);
+}
+
+.controller-header.collapsed .controller-chevron {
+    transform: rotate(-90deg);
+}
+
+.endpoint-list {
+    background: var(--bg-secondary);
+}
+
+.endpoint-item {
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.endpoint-item:hover {
+    background: var(--bg-tertiary);
+    border-left-color: var(--border-color-active);
+    transform: translateX(2px);
+    box-shadow: 0 1px 3px rgba(13, 110, 253, 0.08);
+}
+
+.endpoint-item.active {
+    background: var(--sidebar-active);
+    border-left-color: var(--border-color-active);
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15);
+}
+
+.method-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.4rem;
+    min-width: 50px;
+    text-align: center;
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.method-get { background-color: #28a745; color: white; }
+.method-post { background-color: #0d6efd; color: white; }
+.method-put { background-color: #fd7e14; color: white; }
+.method-delete { background-color: #dc3545; color: white; }
+.method-patch { background-color: #6f42c1; color: white; }
+
+.action-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.15rem 0.4rem;
+    background: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+[data-theme="dark"] .action-badge {
+    background: rgba(13, 110, 253, 0.2);
+    color: #6ea8fe;
+    border-color: rgba(13, 110, 253, 0.3);
+}
+
+.endpoint-path {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.endpoint-detail-header {
+    margin-bottom: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.endpoint-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.875rem;
+    color: var(--text-primary);
+}
+
+.endpoint-meta {
+    display: flex;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.type-link {
+    color: #0d6efd;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px dashed #0d6efd;
+    transition: all 0.2s ease;
+}
+
+.type-link:hover {
+    color: #0a58ca;
+    border-bottom-style: solid;
+    background: rgba(13, 110, 253, 0.05);
+    padding: 0 0.25rem;
+    border-radius: 0.125rem;
+}
+
+.status-badge {
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.status-2xx { background-color: #d1e7dd; color: #0f5132; }
+.status-4xx { background-color: #fff3cd; color: #664d03; }
+.status-5xx { background-color: #f8d7da; color: #842029; }
+
+.enum-member {
+    background: var(--bg-tertiary);
+    border-left: 3px solid #0d6efd;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.enum-member-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.enum-member-value {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.validation-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+code {
+    background: var(--bg-tertiary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: #e83e8c;
+}
+
+.modal-body table {
+    margin-bottom: 0;
+}
+
+.card {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.card-header {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.table {
+    color: var(--text-primary);
+    margin-bottom: 0;
+}
+
+.table-light {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .table {
+    --bs-table-bg: var(--bg-secondary);
+    --bs-table-border-color: var(--border-color);
+}
+
+[data-theme="dark"] .table-light {
+    --bs-table-bg: var(--bg-tertiary);
+    --bs-table-color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .table-hover tbody tr:hover {
+    background-color: var(--bg-tertiary);
+    --bs-table-hover-bg: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .table > :not(caption) > * > * {
+    border-bottom-color: var(--border-color);
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.modal-header {
+    border-color: var(--border-color);
+}
+
+.btn-close {
+    filter: invert(1);
+}
+
+[data-theme="light"] .btn-close {
+    filter: none;
+}
