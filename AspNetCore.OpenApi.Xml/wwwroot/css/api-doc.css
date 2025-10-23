@@ -76,6 +76,43 @@ body {
     gap: 0.5rem;
 }
 
+.search-container {
+    position: relative;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--border-color-active);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.search-icon {
+    position: absolute;
+    right: 1.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
 .theme-toggle, .lang-toggle {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -361,6 +398,25 @@ code {
 
 [data-theme="dark"] .table > :not(caption) > * > * {
     border-bottom-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Fix type link colors in dark theme */
+[data-theme="dark"] .type-link {
+    color: #6ea8fe;
+    border-bottom-color: #6ea8fe;
+}
+
+[data-theme="dark"] .type-link:hover {
+    color: #9ec5fe;
+    border-bottom-color: #9ec5fe;
+    background: rgba(110, 168, 254, 0.1);
+}
+
+/* Ensure code blocks are readable in dark theme */
+[data-theme="dark"] code {
+    background: var(--bg-tertiary);
+    color: #f48fb1;
 }
 
 .modal-content {
@@ -378,4 +434,103 @@ code {
 
 [data-theme="light"] .btn-close {
     filter: none;
+}
+
+.json-example {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.json-example code {
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    line-height: 1.5;
+    padding: 0;
+}
+
+.copy-json {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-secondary {
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    background: transparent;
+}
+
+.btn-outline-secondary:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border-color: var(--border-color-active);
+}
+
+[data-theme="dark"] .btn-outline-secondary {
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border-color: var(--border-color-active);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.modal-backdrop.fade {
+    opacity: 0;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+/* Modal display fix */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    outline: 0;
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 1.75rem auto;
+    pointer-events: none;
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
