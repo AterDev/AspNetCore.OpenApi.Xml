@@ -73,7 +73,7 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
         }}
 
         .sidebar {{
-            width: 320px;
+            width: 300px;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
@@ -136,19 +136,22 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
 
         .controller-header {{
             background: var(--bg-tertiary);
-            padding: 0.75rem 1.25rem;
+            padding: 0.625rem 1rem;
             cursor: pointer;
             border-left: 3px solid var(--controller-border);
-            transition: all 0.2s;
+            transition: all 0.3s ease;
             display: flex;
             justify-content: space-between;
             align-items: center;
             user-select: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }}
 
         .controller-header:hover {{
             background: var(--sidebar-hover);
             border-left-color: var(--border-color-active);
+            box-shadow: 0 2px 4px rgba(13, 110, 253, 0.1);
+            transform: translateX(2px);
         }}
 
         .controller-header.active {{
@@ -158,8 +161,12 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
 
         .controller-name {{
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }}
 
         .controller-chevron {{
@@ -176,32 +183,36 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
         }}
 
         .endpoint-item {{
-            padding: 0.625rem 1.25rem 0.625rem 2.5rem;
+            padding: 0.5rem 1rem 0.5rem 1.25rem;
             cursor: pointer;
             border-left: 3px solid transparent;
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.625rem;
         }}
 
         .endpoint-item:hover {{
             background: var(--bg-tertiary);
             border-left-color: var(--border-color-active);
+            transform: translateX(2px);
+            box-shadow: 0 1px 3px rgba(13, 110, 253, 0.08);
         }}
 
         .endpoint-item.active {{
             background: var(--sidebar-active);
             border-left-color: var(--border-color-active);
+            box-shadow: 0 2px 4px rgba(13, 110, 253, 0.15);
         }}
 
         .method-badge {{
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 700;
-            padding: 0.25rem 0.5rem;
-            min-width: 60px;
+            padding: 0.2rem 0.4rem;
+            min-width: 50px;
             text-align: center;
             border-radius: 0.25rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }}
 
         .method-get {{ background-color: #28a745; color: white; }}
@@ -209,6 +220,22 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
         .method-put {{ background-color: #fd7e14; color: white; }}
         .method-delete {{ background-color: #dc3545; color: white; }}
         .method-patch {{ background-color: #6f42c1; color: white; }}
+
+        .action-badge {{
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 0.15rem 0.4rem;
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            border-radius: 0.25rem;
+            border: 1px solid rgba(13, 110, 253, 0.2);
+        }}
+
+        [data-theme=""dark""] .action-badge {{
+            background: rgba(13, 110, 253, 0.2);
+            color: #6ea8fe;
+            border-color: rgba(13, 110, 253, 0.3);
+        }}
 
         .endpoint-path {{
             flex: 1;
@@ -233,18 +260,23 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
 
         .endpoint-detail-header {{
             margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 1.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }}
 
         .endpoint-title {{
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.875rem;
             color: var(--text-primary);
         }}
 
         .endpoint-meta {{
             display: flex;
-            gap: 0.75rem;
+            gap: 0.625rem;
             flex-wrap: wrap;
             align-items: center;
         }}
@@ -254,11 +286,15 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             cursor: pointer;
             text-decoration: none;
             border-bottom: 1px dashed #0d6efd;
+            transition: all 0.2s ease;
         }}
 
         .type-link:hover {{
             color: #0a58ca;
             border-bottom-style: solid;
+            background: rgba(13, 110, 253, 0.05);
+            padding: 0 0.25rem;
+            border-radius: 0.125rem;
         }}
 
         .status-badge {{
@@ -314,16 +350,24 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             background: var(--bg-secondary);
             border-color: var(--border-color);
             color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s ease;
+        }}
+
+        .card:hover {{
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
         }}
 
         .card-header {{
             background: var(--bg-tertiary);
             border-color: var(--border-color);
             color: var(--text-primary);
+            font-weight: 600;
         }}
 
         .table {{
             color: var(--text-primary);
+            margin-bottom: 0;
         }}
 
         .table-light {{
@@ -331,8 +375,24 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             color: var(--text-primary);
         }}
 
+        [data-theme=""dark""] .table {{
+            --bs-table-bg: var(--bg-secondary);
+            --bs-table-border-color: var(--border-color);
+        }}
+
+        [data-theme=""dark""] .table-light {{
+            --bs-table-bg: var(--bg-tertiary);
+            --bs-table-color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }}
+
         [data-theme=""dark""] .table-hover tbody tr:hover {{
             background-color: var(--bg-tertiary);
+            --bs-table-hover-bg: var(--bg-tertiary);
+        }}
+
+        [data-theme=""dark""] .table > :not(caption) > * > * {{
+            border-bottom-color: var(--border-color);
         }}
 
         .modal-content {{
@@ -558,10 +618,20 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'controller-group';
 
+                // Get unique action names from endpoints
+                const actions = groupedEndpoints[controller].map(e => e.description).filter(Boolean);
+                const uniqueActions = [...new Set(actions)];
+                const actionBadges = uniqueActions.length > 0 && uniqueActions.length <= 10
+                    ? uniqueActions.map(action => `<span class=""action-badge"">${{action}}</span>`).join(' ')
+                    : '';
+
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'controller-header';
                 headerDiv.innerHTML = `
-                    <span class=""controller-name"">${{controller}}</span>
+                    <span class=""controller-name"">
+                        ${{controller}}
+                        ${{actionBadges}}
+                    </span>
                     <i class=""bi bi-chevron-down controller-chevron""></i>
                 `;
 
@@ -572,8 +642,8 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
                 groupedEndpoints[controller].forEach(endpoint => {{
                     const item = document.createElement('div');
                     item.className = 'endpoint-item';
-                    // Prioritize summary (XML comment), then description, then path
-                    const displayText = endpoint.summary || endpoint.description || endpoint.path;
+                    // Prioritize summary (XML comment), then path
+                    const displayText = endpoint.summary || endpoint.path;
                     item.innerHTML = `
                         <span class=""badge method-badge method-${{endpoint.method.toLowerCase()}}"">${{endpoint.method}}</span>
                         <span class=""endpoint-path"">${{displayText}}</span>
@@ -602,8 +672,8 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             const detail = document.getElementById('endpoint-detail');
             detail.style.display = 'block';
 
-            // Use summary (XML comment) if available, otherwise use description or path
-            const title = endpoint.summary || endpoint.description || endpoint.path;
+            // Use summary (XML comment) if available, otherwise use path
+            const title = endpoint.summary || endpoint.path;
             let html = `
                 <div class=""endpoint-detail-header"">
                     <h2 class=""endpoint-title"">${{title}}</h2>
@@ -675,11 +745,16 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
                 endpoint.responses.forEach(resp => {{
                     const statusClass = resp.statusCode >= 200 && resp.statusCode < 300 ? 'status-2xx' :
                                        resp.statusCode >= 400 && resp.statusCode < 500 ? 'status-4xx' : 'status-5xx';
+                    // Default to application/json if content type is text/plain and there's a body
+                    let contentType = resp.contentType;
+                    if (contentType === 'text/plain' && resp.body) {{
+                        contentType = 'application/json';
+                    }}
                     html += `
                         <div class=""mb-3"">
                             <div class=""mb-2"">
                                 <span class=""status-badge ${{statusClass}}"">${{resp.statusCode}}</span>
-                                ${{resp.contentType ? `<code class=""ms-2"">${{resp.contentType}}</code>` : ''}}
+                                ${{contentType ? `<code class=""ms-2"">${{contentType}}</code>` : ''}}
                             </div>
                             ${{resp.body ? renderModel(resp.body) : `<p class=""text-muted mb-0"">${{t('noResponse')}}</p>`}}
                         </div>
@@ -748,37 +823,48 @@ public class ApiDocumentationPageService : IApiDocumentationPageService
             
             if (model.fields && model.fields.length > 0) {{
                 html += renderParamsTable(model.fields);
-            }} else if (model.elementType) {{
-                html += `<p class=""p-3 mb-0"">${{t('arrayType')}}，${{t('elementType')}}: ${{renderModelType(model.elementType)}}</p>`;
-            }} else if (model.keyType && model.valueType) {{
-                html += `
-                    <div class=""p-3"">
-                        <p class=""mb-2""><strong>${{t('dictionaryType')}}</strong></p>
-                        <p class=""mb-1"">${{t('keyType')}}: ${{renderModelType(model.keyType)}}</p>
-                        <p class=""mb-0"">${{t('valueType')}}: ${{renderModelType(model.valueType)}}</p>
-                    </div>
-                `;
-            }} else if (model.tupleElements && model.tupleElements.length > 0) {{
-                html += `
-                    <div class=""p-3"">
-                        <p class=""mb-2""><strong>${{t('tupleType')}}</strong></p>
-                        ${{model.tupleElements.map((elem, idx) => 
-                            `<p class=""mb-1"">Item${{idx + 1}}: ${{elem.modelId ? renderModelType({{ id: elem.modelId, name: elem.type }}) : (elem.type || 'unknown')}}</p>`
-                        ).join('')}}
-                    </div>
-                `;
             }} else if (model.genericArguments && model.genericArguments.length > 0) {{
-                html += `
-                    <div class=""p-3"">
-                        <p class=""mb-2""><strong>${{t('genericType')}}: ${{model.name || model.id}}</strong></p>
-                        <p class=""mb-1"">${{t('genericParams')}}:</p>
-                        <ul class=""mb-0"">
-                        ${{model.genericArguments.map(arg => 
-                            `<li>${{renderModelType(arg)}}</li>`
-                        ).join('')}}
-                        </ul>
-                    </div>
-                `;
+                // For generic types with arguments, show type name with parameters
+                const genericParams = model.genericArguments.map(arg => arg.name || arg.id || 'unknown').join(', ');
+                
+                html += `<div class=""p-3""><p class=""mb-2""><strong>${{t('type')}}: ${{model.name || model.id}} &lt; ${{genericParams}} &gt;</strong></p></div>`;
+                
+                // Show fields of each generic argument if available
+                model.genericArguments.forEach((arg, idx) => {{
+                    if (arg.fields && arg.fields.length > 0) {{
+                        html += `<div class=""p-3 pt-0""><p class=""mb-2""><strong>Type Parameter ${{idx + 1}}: ${{arg.name || arg.id}}</strong></p></div>`;
+                        html += renderParamsTable(arg.fields);
+                    }}
+                }});
+            }} else if (model.elementType) {{
+                // Array/List types
+                if (model.elementType.fields && model.elementType.fields.length > 0) {{
+                    html += `<div class=""p-3""><p class=""mb-2""><strong>${{t('arrayType')}}: ${{model.name || model.id}} &lt; ${{model.elementType.name || model.elementType.id}} &gt;</strong></p></div>`;
+                    html += renderParamsTable(model.elementType.fields);
+                }} else {{
+                    html += `<p class=""p-3 mb-0"">${{t('arrayType')}}，${{t('elementType')}}: ${{renderModelType(model.elementType)}}</p>`;
+                }}
+            }} else if (model.keyType && model.valueType) {{
+                // Dictionary type
+                html += `<div class=""p-3"">
+                    <p class=""mb-2""><strong>${{t('dictionaryType')}}: ${{model.name || model.id}} &lt; ${{model.keyType.name || model.keyType.id}}, ${{model.valueType.name || model.valueType.id}} &gt;</strong></p>
+                    <p class=""mb-1"">${{t('keyType')}}: ${{renderModelType(model.keyType)}}</p>
+                    <p class=""mb-0"">${{t('valueType')}}: ${{renderModelType(model.valueType)}}</p>
+                </div>`;
+                if (model.valueType.fields && model.valueType.fields.length > 0) {{
+                    html += renderParamsTable(model.valueType.fields);
+                }}
+            }} else if (model.tupleElements && model.tupleElements.length > 0) {{
+                html += `<div class=""p-3""><p class=""mb-2""><strong>${{t('tupleType')}}: ${{model.name || model.id}}</strong></p></div>`;
+                // Show tuple elements as table
+                const tupleFields = model.tupleElements.map((elem, idx) => ({{
+                    name: elem.name || `Item${{idx + 1}}`,
+                    type: elem.type,
+                    required: elem.required,
+                    description: elem.description,
+                    modelId: elem.modelId
+                }}));
+                html += renderParamsTable(tupleFields);
             }} else if (model.modelType === 'Enum') {{
                 html += `<p class=""p-3 mb-0"">${{t('type')}}: ${{model.name || model.id}}</p>`;
             }} else {{
