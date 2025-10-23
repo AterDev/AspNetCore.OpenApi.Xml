@@ -7,6 +7,7 @@ const i18n = {
         'version': '版本',
         'apiDoc': 'API 文档',
         'selectEndpoint': '请从左侧选择一个接口以查看详细信息',
+        'searchEndpoints': '搜索接口...',
         'routeParams': '路由参数',
         'queryParams': '查询参数',
         'headers': '请求头',
@@ -35,12 +36,14 @@ const i18n = {
         'genericParams': '泛型参数',
         'name': '名称',
         'arrayType': '数组类型',
-        'modelNotFound': '模型未找到'
+        'modelNotFound': '模型未找到',
+        'responseExample': '响应示例'
     },
     'en-US': {
         'version': 'Version',
         'apiDoc': 'API Documentation',
         'selectEndpoint': 'Please select an endpoint from the left to view details',
+        'searchEndpoints': 'Search endpoints...',
         'routeParams': 'Route Parameters',
         'queryParams': 'Query Parameters',
         'headers': 'Headers',
@@ -69,7 +72,8 @@ const i18n = {
         'genericParams': 'Generic Parameters',
         'name': 'Name',
         'arrayType': 'Array Type',
-        'modelNotFound': 'Model not found'
+        'modelNotFound': 'Model not found',
+        'responseExample': 'Response Example'
     }
 };
 
@@ -83,6 +87,12 @@ function updateLocalization() {
         el.textContent = t(key);
     });
     
+    // Update placeholder attributes
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        el.placeholder = t(key);
+    });
+    
     // Update empty state text
     const emptyState = document.getElementById('empty-state');
     if (emptyState) {
@@ -92,7 +102,55 @@ function updateLocalization() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    typeModal = new bootstrap.Modal(document.getElementById('typeModal'));
+    // Initialize modal element reference (will work without Bootstrap Modal)
+    const modalElement = document.getElementById('typeModal');
+    typeModal = {
+        show: function() {
+            if (modalElement) {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.removeAttribute('aria-hidden');
+                // Add backdrop
+                let backdrop = document.querySelector('.modal-backdrop');
+                if (!backdrop) {
+                    backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+                document.body.classList.add('modal-open');
+            }
+        },
+        hide: function() {
+            if (modalElement) {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+                // Remove backdrop
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                document.body.classList.remove('modal-open');
+            }
+        }
+    };
+    
+    // Setup close button for modal
+    const closeButton = modalElement?.querySelector('.btn-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => typeModal.hide());
+    }
+    
+    // Close modal on backdrop click
+    if (modalElement) {
+        modalElement.addEventListener('click', (e) => {
+            if (e.target === modalElement) {
+                typeModal.hide();
+            }
+        });
+    }
     
     // Initialize theme from localStorage or system preference
     const savedTheme = localStorage.getItem('theme');
@@ -108,6 +166,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     renderApiList();
     updateLocalization();
+
+    // Setup search functionality
+    const searchInput = document.getElementById('endpoint-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterEndpoints(e.target.value);
+        });
+    }
 
     // Theme toggle
     document.getElementById('themeToggle').addEventListener('click', function() {
@@ -160,25 +226,15 @@ function renderApiList() {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'controller-group';
 
-        // Get unique action names from endpoints
-        const actions = groupedEndpoints[controller].map(e => e.description).filter(Boolean);
-        const uniqueActions = [...new Set(actions)];
-        const actionBadges = uniqueActions.length > 0 && uniqueActions.length <= 10
-            ? uniqueActions.map(action => `<span class="action-badge">${action}</span>`).join(' ')
-            : '';
-
         const headerDiv = document.createElement('div');
         headerDiv.className = 'controller-header';
         headerDiv.innerHTML = `
-            <span class="controller-name">
-                ${controller}
-                ${actionBadges}
-            </span>
+            <span class="controller-name">${controller}</span>
             <i class="bi bi-chevron-down controller-chevron"></i>
         `;
 
         const collapse = document.createElement('div');
-        collapse.className = 'collapse show endpoint-list';
+        collapse.className = 'endpoint-list';
         collapse.id = `collapse-${controller.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
         groupedEndpoints[controller].forEach(endpoint => {
@@ -200,7 +256,12 @@ function renderApiList() {
 
         headerDiv.onclick = () => {
             headerDiv.classList.toggle('collapsed');
-            const bsCollapse = new bootstrap.Collapse(collapse, {toggle: true});
+            // Toggle collapse without Bootstrap
+            if (collapse.style.display === 'none') {
+                collapse.style.display = 'block';
+            } else {
+                collapse.style.display = 'none';
+            }
         };
 
         groupDiv.appendChild(headerDiv);
@@ -299,6 +360,7 @@ function showEndpoint(endpoint) {
                         ${contentType ? `<code class="ms-2">${contentType}</code>` : ''}
                     </div>
                     ${resp.body ? renderModel(resp.body) : `<p class="text-muted mb-0">${t('noResponse')}</p>`}
+                    ${resp.body ? renderJsonExample(resp.body) : ''}
                 </div>
             `;
         });
@@ -424,6 +486,54 @@ function renderModelType(model) {
     return model.name || model.id || 'unknown';
 }
 
+function renderJsonExample(model) {
+    if (!model) return '';
+    
+    const example = generateJsonExample(model);
+    if (!example) return '';
+    
+    try {
+        const jsonString = JSON.stringify(example, null, 2);
+        return `
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <strong class="text-secondary">${t('responseExample')}</strong>
+                    <button class="btn btn-sm btn-outline-secondary copy-json" onclick="copyJsonExample(this)" data-json="${escapeHtml(jsonString)}">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
+                <pre class="json-example"><code>${escapeHtml(jsonString)}</code></pre>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Failed to generate JSON example:', e);
+        return '';
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function copyJsonExample(button) {
+    const json = button.getAttribute('data-json');
+    navigator.clipboard.writeText(json).then(() => {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary');
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+}
+
 function showTypeModal(modelId) {
     const model = apiData.models.find(m => m.id === modelId);
     if (!model) {
@@ -497,4 +607,133 @@ function showTypeModal(modelId) {
 
     document.getElementById('typeModalBody').innerHTML = html;
     typeModal.show();
+}
+
+function filterEndpoints(searchText) {
+    const search = searchText.toLowerCase().trim();
+    const controllerGroups = document.querySelectorAll('.controller-group');
+    
+    if (!search) {
+        // Show all endpoints and groups
+        controllerGroups.forEach(group => {
+            group.style.display = '';
+            const endpoints = group.querySelectorAll('.endpoint-item');
+            endpoints.forEach(item => item.style.display = '');
+        });
+        return;
+    }
+    
+    controllerGroups.forEach(group => {
+        const endpoints = group.querySelectorAll('.endpoint-item');
+        let hasVisibleEndpoint = false;
+        
+        endpoints.forEach(item => {
+            const endpoint = item.textContent.toLowerCase();
+            // Get the actual endpoint data to search through description and path
+            const endpointIndex = Array.from(document.querySelectorAll('.endpoint-item')).indexOf(item);
+            const endpointData = apiData.endpoints[endpointIndex];
+            
+            const matchesText = endpoint.includes(search);
+            const matchesPath = endpointData?.path?.toLowerCase().includes(search);
+            const matchesDescription = endpointData?.description?.toLowerCase().includes(search);
+            const matchesSummary = endpointData?.summary?.toLowerCase().includes(search);
+            
+            if (matchesText || matchesPath || matchesDescription || matchesSummary) {
+                item.style.display = '';
+                hasVisibleEndpoint = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Hide the controller group if no endpoints match
+        group.style.display = hasVisibleEndpoint ? '' : 'none';
+    });
+}
+
+function generateJsonExample(model, depth = 0, visited = new Set()) {
+    if (!model || depth > 3) return null; // Limit depth to avoid infinite recursion
+    
+    // Check for circular references
+    if (model.id && visited.has(model.id)) {
+        return '...'; // Circular reference indicator
+    }
+    
+    if (model.id) {
+        visited.add(model.id);
+    }
+    
+    // Handle different model types
+    if (model.modelType === 'Primitive') {
+        // Return example values based on type
+        const type = (model.name || model.type || '').toLowerCase();
+        if (type.includes('string')) return 'string';
+        if (type.includes('int') || type.includes('long') || type.includes('short')) return 0;
+        if (type.includes('decimal') || type.includes('double') || type.includes('float')) return 0.0;
+        if (type.includes('bool')) return true;
+        if (type.includes('datetime') || type.includes('date')) return '2024-01-01T00:00:00Z';
+        if (type.includes('guid') || type.includes('uuid')) return '00000000-0000-0000-0000-000000000000';
+        return 'value';
+    }
+    
+    if (model.modelType === 'Enum') {
+        // Return first enum member value if available
+        if (model.enumMembers && model.enumMembers.length > 0) {
+            return model.enumMembers[0].value || model.enumMembers[0].name;
+        }
+        return 0;
+    }
+    
+    if (model.modelType === 'Array' || model.elementType) {
+        // Array type - return array with one example element
+        const elementExample = model.elementType ? generateJsonExample(model.elementType, depth + 1, new Set(visited)) : 'item';
+        return [elementExample];
+    }
+    
+    if (model.modelType === 'Dictionary' || (model.keyType && model.valueType)) {
+        // Dictionary type
+        const keyExample = model.keyType ? generateJsonExample(model.keyType, depth + 1, new Set(visited)) : 'key';
+        const valueExample = model.valueType ? generateJsonExample(model.valueType, depth + 1, new Set(visited)) : 'value';
+        return { [keyExample]: valueExample };
+    }
+    
+    if (model.tupleElements && model.tupleElements.length > 0) {
+        // Tuple type - return object with tuple elements
+        const result = {};
+        model.tupleElements.forEach((elem, idx) => {
+            const key = elem.name || `item${idx + 1}`;
+            const elemModel = elem.modelId ? apiData.models.find(m => m.id === elem.modelId) : null;
+            result[key] = elemModel ? generateJsonExample(elemModel, depth + 1, new Set(visited)) : (elem.type || 'value');
+        });
+        return result;
+    }
+    
+    if (model.fields && model.fields.length > 0) {
+        // Object with fields
+        const result = {};
+        model.fields.forEach(field => {
+            const fieldModel = field.modelId ? apiData.models.find(m => m.id === field.modelId) : null;
+            if (fieldModel) {
+                result[field.name] = generateJsonExample(fieldModel, depth + 1, new Set(visited));
+            } else {
+                // Generate example based on field type
+                const type = (field.type || '').toLowerCase();
+                if (type.includes('string')) result[field.name] = field.example || 'string';
+                else if (type.includes('int') || type.includes('long')) result[field.name] = 0;
+                else if (type.includes('decimal') || type.includes('double') || type.includes('float')) result[field.name] = 0.0;
+                else if (type.includes('bool')) result[field.name] = true;
+                else if (type.includes('datetime') || type.includes('date')) result[field.name] = '2024-01-01T00:00:00Z';
+                else if (type.includes('guid')) result[field.name] = '00000000-0000-0000-0000-000000000000';
+                else result[field.name] = field.example || null;
+            }
+        });
+        return result;
+    }
+    
+    if (model.genericArguments && model.genericArguments.length > 0) {
+        // Generic type with arguments - try to generate from first argument
+        return generateJsonExample(model.genericArguments[0], depth + 1, new Set(visited));
+    }
+    
+    return null;
 }
