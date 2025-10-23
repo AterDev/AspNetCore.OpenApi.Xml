@@ -17,7 +17,8 @@ public static class EndpointRouteBuilderExtensions
     /// </remarks>
     public static IEndpointRouteBuilder MapApiDocument(this IEndpointRouteBuilder endpoints, string pattern = "/api-doc")
     {
-        // Map Blazor component endpoints with interactive server mode
+        // Map the Blazor app which includes all Razor components
+        // This needs to be called once for the entire application, not per-pattern
         endpoints.MapRazorComponents<Components.App>()
             .AddInteractiveServerRenderMode();
 
