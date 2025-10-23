@@ -1,0 +1,51 @@
+
+@foreach (var group in GroupedEndpoints)
+{
+    <div class="controller-group">
+        <div class="controller-header @(CollapsedGroups.Contains(group.Key) ? "collapsed" : "")" @onclick="() => ToggleGroup(group.Key)">
+            <span class="controller-name">@group.Key</span>
+            <i class="bi bi-chevron-down controller-chevron"></i>
+        </div>
+        <div class="endpoint-list" style="display: @(CollapsedGroups.Contains(group.Key) ? "none" : "block")">
+            @foreach (var endpoint in group)
+            {
+                var displayText = endpoint.Summary ?? endpoint.Path;
+                var isActive = SelectedEndpoint == endpoint;
+                <div class="endpoint-item @(isActive ? "active" : "")" @onclick="() => OnEndpointSelected.InvokeAsync(endpoint)">
+                    <span class="badge method-badge method-@endpoint.Method?.ToLower()">@endpoint.Method</span>
+                    <span class="endpoint-path">@displayText</span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IEnumerable<Endpoint> Endpoints { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Endpoint> OnEndpointSelected { get; set; }
+
+    [Parameter]
+    public Endpoint? SelectedEndpoint { get; set; }
+
+    private HashSet<string> CollapsedGroups { get; set; } = [];
+
+    private IEnumerable<IGrouping<string, Endpoint>> GroupedEndpoints =>
+        Endpoints
+            .GroupBy(e => e.Tags != null && e.Tags.Count > 0 ? e.Tags[0] : "Default")
+            .OrderBy(g => g.Key);
+
+    private void ToggleGroup(string groupKey)
+    {
+        if (CollapsedGroups.Contains(groupKey))
+        {
+            CollapsedGroups.Remove(groupKey);
+        }
+        else
+        {
+            CollapsedGroups.Add(groupKey);
+        }
+    }
+}

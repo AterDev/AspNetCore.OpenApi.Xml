@@ -1,0 +1,149 @@
+
+@if (Model == null)
+{
+    <p class="text-muted mb-0">@Localize("noResponse")</p>
+}
+else if (Model.Fields != null && Model.Fields.Count > 0)
+{
+    <ParametersTable Parameters="@Model.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+}
+else if (Model.GenericArguments != null && Model.GenericArguments.Count > 0)
+{
+    var genericParams = string.Join(", ", Model.GenericArguments.Select(arg => arg.Name ?? arg.Id ?? "unknown"));
+    <div class="p-3">
+        <p class="mb-2"><strong>@Localize("type"): @(Model.Name ?? Model.Id) &lt; @genericParams &gt;</strong></p>
+    </div>
+    @foreach (var (arg, idx) in Model.GenericArguments.Select((a, i) => (a, i)))
+    {
+        @if (arg.Fields != null && arg.Fields.Count > 0)
+        {
+            <div class="p-3 pt-0">
+                <p class="mb-2"><strong>Type Parameter @(idx + 1): @(arg.Name ?? arg.Id)</strong></p>
+            </div>
+            <ParametersTable Parameters="@arg.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+        }
+    }
+}
+else if (Model.ElementType != null)
+{
+    @if (Model.ElementType.Fields != null && Model.ElementType.Fields.Count > 0)
+    {
+        <div class="p-3">
+            <p class="mb-2"><strong>@Localize("arrayType"): @(Model.Name ?? Model.Id) &lt; @(Model.ElementType.Name ?? Model.ElementType.Id) &gt;</strong></p>
+        </div>
+        <ParametersTable Parameters="@Model.ElementType.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+    }
+    else
+    {
+        <p class="p-3 mb-0">@Localize("arrayType")，@Localize("elementType"): @RenderModelType(Model.ElementType)</p>
+    }
+}
+else if (Model.KeyType != null && Model.ValueType != null)
+{
+    var keyTypeName = RenderModelTypeSimple(Model.KeyType);
+    var valueTypeName = RenderModelTypeSimple(Model.ValueType);
+    <div class="p-3">
+        <p class="mb-2"><strong>@Localize("dictionaryType"): @(Model.Name ?? "Dictionary")&lt;@keyTypeName, @valueTypeName&gt;</strong></p>
+        <p class="mb-1">@Localize("keyType"): @RenderModelType(Model.KeyType)</p>
+        <p class="mb-0">@Localize("valueType"): @RenderModelType(Model.ValueType)</p>
+    </div>
+    @if (Model.ValueType.Fields != null && Model.ValueType.Fields.Count > 0)
+    {
+        <ParametersTable Parameters="@Model.ValueType.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+    }
+}
+else if (Model.TupleElements != null && Model.TupleElements.Count > 0)
+{
+    <div class="p-3">
+        <p class="mb-2"><strong>@Localize("tupleType"): @(Model.Name ?? Model.Id)</strong></p>
+    </div>
+    var tupleFields = Model.TupleElements.Select((elem, idx) => new ApiField
+    {
+        Name = elem.Name ?? $"Item{idx + 1}",
+        Type = elem.Type,
+        Required = elem.Required,
+        Description = elem.Description,
+        ModelId = elem.ModelId
+    }).ToList();
+    <ParametersTable Parameters="@tupleFields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+}
+else if (Model.ModelType == ModelType.Enum)
+{
+    <p class="p-3 mb-0">@Localize("type"): @(Model.Name ?? Model.Id)</p>
+}
+else
+{
+    <p class="p-3 mb-0">@Localize("type"): @(Model.Name ?? Model.Id ?? "unknown")</p>
+}
+
+@code {
+    [Parameter]
+    public ApiModel? Model { get; set; }
+
+    [Parameter]
+    public ApiDocument Document { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<string> OnShowTypeModal { get; set; }
+
+    [Parameter]
+    public string CurrentLanguage { get; set; } = "zh-CN";
+
+    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
+
+    private MarkupString RenderModelType(ApiModel model)
+    {
+        if (model == null) return new MarkupString("unknown");
+
+        var typeName = model.Name ?? model.Id ?? "unknown";
+
+        if (model.KeyType != null && model.ValueType != null)
+        {
+            var keyTypeName = RenderModelTypeSimple(model.KeyType);
+            var valueTypeName = RenderModelTypeSimple(model.ValueType);
+            typeName = $"{model.Name ?? "Dictionary"}&lt;{keyTypeName}, {valueTypeName}&gt;";
+        }
+        else if (model.ElementType != null)
+        {
+            var elemTypeName = RenderModelTypeSimple(model.ElementType);
+            typeName = $"{model.Name ?? "Array"}&lt;{elemTypeName}&gt;";
+        }
+        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
+        {
+            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
+            typeName = $"{model.Name ?? model.Id}&lt;{genericParams}&gt;";
+        }
+
+        if (!string.IsNullOrEmpty(model.Id))
+        {
+            return new MarkupString($"<span class=\"type-link\" onclick=\"{OnShowTypeModal.InvokeAsync(model.Id)}\">{typeName}</span>");
+        }
+        return new MarkupString(typeName);
+    }
+
+    private string RenderModelTypeSimple(ApiModel model)
+    {
+        if (model == null) return "unknown";
+
+        var typeName = model.Name ?? model.Id ?? "unknown";
+
+        if (model.KeyType != null && model.ValueType != null)
+        {
+            var keyTypeName = RenderModelTypeSimple(model.KeyType);
+            var valueTypeName = RenderModelTypeSimple(model.ValueType);
+            typeName = $"{model.Name ?? "Dictionary"}<{keyTypeName}, {valueTypeName}>";
+        }
+        else if (model.ElementType != null)
+        {
+            var elemTypeName = RenderModelTypeSimple(model.ElementType);
+            typeName = $"{model.Name ?? "Array"}<{elemTypeName}>";
+        }
+        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
+        {
+            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
+            typeName = $"{model.Name ?? model.Id}<{genericParams}>";
+        }
+
+        return typeName;
+    }
+}

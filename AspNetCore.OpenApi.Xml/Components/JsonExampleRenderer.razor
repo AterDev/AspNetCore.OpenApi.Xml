@@ -1,0 +1,167 @@
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+
+@if (!string.IsNullOrEmpty(JsonExample))
+{
+    <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <strong class="text-secondary">@Localize("responseExample")</strong>
+            <button class="btn btn-sm btn-outline-secondary copy-json" @onclick="CopyJsonExample">
+                <i class="bi @(Copied ? "bi-check" : "bi-clipboard")"></i> @(Copied ? "Copied!" : "Copy")
+            </button>
+        </div>
+        <pre class="json-example"><code>@JsonExample</code></pre>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ApiModel? Model { get; set; }
+
+    [Parameter]
+    public ApiDocument Document { get; set; } = null!;
+
+    [Parameter]
+    public string CurrentLanguage { get; set; } = "zh-CN";
+
+    private string? JsonExample { get; set; }
+    private bool Copied { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Model != null)
+        {
+            var example = GenerateJsonExample(Model, 0, []);
+            if (example != null)
+            {
+                try
+                {
+                    JsonExample = JsonSerializer.Serialize(example, new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    });
+                }
+                catch
+                {
+                    JsonExample = null;
+                }
+            }
+        }
+    }
+
+    private async Task CopyJsonExample()
+    {
+        if (!string.IsNullOrEmpty(JsonExample))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", JsonExample);
+                Copied = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                Copied = false;
+                StateHasChanged();
+            }
+            catch
+            {
+                // Ignore clipboard errors
+            }
+        }
+    }
+
+    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
+
+    private object? GenerateJsonExample(ApiModel model, int depth, HashSet<string> visited)
+    {
+        if (model == null || depth > 3) return null;
+
+        if (!string.IsNullOrEmpty(model.Id) && visited.Contains(model.Id))
+        {
+            return "...";
+        }
+
+        if (!string.IsNullOrEmpty(model.Id))
+        {
+            visited.Add(model.Id);
+        }
+
+        if (model.ModelType == ModelType.Primitive)
+        {
+            var type = (model.Name ?? "").ToLower();
+            if (type.Contains("string")) return "string";
+            if (type.Contains("int") || type.Contains("long") || type.Contains("short")) return 0;
+            if (type.Contains("decimal") || type.Contains("double") || type.Contains("float")) return 0.0;
+            if (type.Contains("bool")) return true;
+            if (type.Contains("datetime") || type.Contains("date")) return "2024-01-01T00:00:00Z";
+            if (type.Contains("guid") || type.Contains("uuid")) return "00000000-0000-0000-0000-000000000000";
+            return "value";
+        }
+
+        if (model.ModelType == ModelType.Enum)
+        {
+            if (model.EnumMembers != null && model.EnumMembers.Count > 0)
+            {
+                return model.EnumMembers[0].Value ?? model.EnumMembers[0].Name;
+            }
+            return 0;
+        }
+
+        if (model.ModelType == ModelType.Array || model.ElementType != null)
+        {
+            var elementExample = model.ElementType != null ? GenerateJsonExample(model.ElementType, depth + 1, new HashSet<string>(visited)) : "item";
+            return new[] { elementExample };
+        }
+
+        if (model.ModelType == ModelType.Dictionary || (model.KeyType != null && model.ValueType != null))
+        {
+            var keyExample = model.KeyType != null ? GenerateJsonExample(model.KeyType, depth + 1, new HashSet<string>(visited)) : "key";
+            var valueExample = model.ValueType != null ? GenerateJsonExample(model.ValueType, depth + 1, new HashSet<string>(visited)) : "value";
+            return new Dictionary<string, object?> { [keyExample?.ToString() ?? "key"] = valueExample };
+        }
+
+        if (model.TupleElements != null && model.TupleElements.Count > 0)
+        {
+            var result = new Dictionary<string, object?>();
+            foreach (var (elem, idx) in model.TupleElements.Select((e, i) => (e, i)))
+            {
+                var key = elem.Name ?? $"item{idx + 1}";
+                var elemModel = !string.IsNullOrEmpty(elem.ModelId) ? Document.Models.FirstOrDefault(m => m.Id == elem.ModelId) : null;
+                result[key] = elemModel != null ? GenerateJsonExample(elemModel, depth + 1, new HashSet<string>(visited)) : elem.Type ?? "value";
+            }
+            return result;
+        }
+
+        if (model.Fields != null && model.Fields.Count > 0)
+        {
+            var result = new Dictionary<string, object?>();
+            foreach (var field in model.Fields)
+            {
+                var fieldModel = !string.IsNullOrEmpty(field.ModelId) ? Document.Models.FirstOrDefault(m => m.Id == field.ModelId) : null;
+                if (fieldModel != null)
+                {
+                    result[field.Name ?? "field"] = GenerateJsonExample(fieldModel, depth + 1, new HashSet<string>(visited));
+                }
+                else
+                {
+                    var type = (field.Type ?? "").ToLower();
+                    if (type.Contains("string")) result[field.Name ?? "field"] = field.Example ?? "string";
+                    else if (type.Contains("int") || type.Contains("long")) result[field.Name ?? "field"] = 0;
+                    else if (type.Contains("decimal") || type.Contains("double") || type.Contains("float")) result[field.Name ?? "field"] = 0.0;
+                    else if (type.Contains("bool")) result[field.Name ?? "field"] = true;
+                    else if (type.Contains("datetime") || type.Contains("date")) result[field.Name ?? "field"] = "2024-01-01T00:00:00Z";
+                    else if (type.Contains("guid")) result[field.Name ?? "field"] = "00000000-0000-0000-0000-000000000000";
+                    else result[field.Name ?? "field"] = field.Example ?? null;
+                }
+            }
+            return result;
+        }
+
+        if (model.GenericArguments != null && model.GenericArguments.Count > 0)
+        {
+            return GenerateJsonExample(model.GenericArguments[0], depth + 1, new HashSet<string>(visited));
+        }
+
+        return null;
+    }
+}

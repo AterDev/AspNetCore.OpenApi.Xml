@@ -1,0 +1,123 @@
+@using System.Text.Json
+
+<div class="endpoint-detail-header">
+    <h2 class="endpoint-title">@(Endpoint.Summary ?? Endpoint.Path)</h2>
+    <div class="endpoint-meta">
+        <span class="badge method-badge fs-6 method-@Endpoint.Method?.ToLower()">@Endpoint.Method</span>
+        <code class="fs-6">@Endpoint.Path</code>
+        @if (Endpoint.Deprecated)
+        {
+            <span class="badge bg-danger">DEPRECATED</span>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Endpoint.Description))
+{
+    <div class="card my-1">
+        <div class="card-header"><i class="bi bi-code"></i> @Localize("codePath")</div>
+        <div class="card-body">
+            <strong>
+                @if (Endpoint.Tags != null && Endpoint.Tags.Count > 0)
+                {
+                    @Endpoint.Tags[0]
+                    <text>/</text>
+                }
+                @Endpoint.Description
+            </strong>
+        </div>
+    </div>
+}
+
+@if (Endpoint.Request != null)
+{
+    @if (Endpoint.Request.RouteParameters != null && Endpoint.Request.RouteParameters.Count > 0)
+    {
+        <div class="card my-2">
+            <div class="card-header"><i class="bi bi-signpost"></i> @Localize("routeParams")</div>
+            <div class="card-body p-0">
+                <ParametersTable Parameters="@Endpoint.Request.RouteParameters" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+            </div>
+        </div>
+    }
+
+    @if (Endpoint.Request.QueryParameters != null && Endpoint.Request.QueryParameters.Count > 0)
+    {
+        <div class="card my-2">
+            <div class="card-header"><i class="bi bi-question-circle"></i> @Localize("queryParams")</div>
+            <div class="card-body p-0">
+                <ParametersTable Parameters="@Endpoint.Request.QueryParameters" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+            </div>
+        </div>
+    }
+
+    @if (Endpoint.Request.Headers != null && Endpoint.Request.Headers.Count > 0)
+    {
+        <div class="card my-2">
+            <div class="card-header"><i class="bi bi-list-ul"></i> @Localize("headers")</div>
+            <div class="card-body p-0">
+                <ParametersTable Parameters="@Endpoint.Request.Headers" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+            </div>
+        </div>
+    }
+
+    @if (Endpoint.Request.Body != null)
+    {
+        <div class="card my-2">
+            <div class="card-header"><i class="bi bi-file-earmark-code"></i> @Localize("requestBody")</div>
+            <div class="card-body p-0">
+                <ModelRenderer Model="@Endpoint.Request.Body" Document="@Document" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+            </div>
+        </div>
+    }
+}
+
+@if (Endpoint.Responses != null && Endpoint.Responses.Count > 0)
+{
+    <div class="card my-2">
+        <div class="card-header"><i class="bi bi-reply"></i> @Localize("responses")</div>
+        <div class="card-body">
+            @foreach (var response in Endpoint.Responses)
+            {
+                var statusClass = response.StatusCode >= 200 && response.StatusCode < 300 ? "status-2xx" :
+                    response.StatusCode >= 400 && response.StatusCode < 500 ? "status-4xx" : "status-5xx";
+                var contentType = response.ContentType == "text/plain" && response.Body != null ? "application/json" : response.ContentType;
+
+                <div class="mb-3">
+                    <div class="mb-2">
+                        <span class="status-badge @statusClass">@response.StatusCode</span>
+                        @if (!string.IsNullOrEmpty(contentType))
+                        {
+                            <code class="ms-2">@contentType</code>
+                        }
+                    </div>
+                    @if (response.Body != null)
+                    {
+                        <ModelRenderer Model="@response.Body" Document="@Document" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+                        <JsonExampleRenderer Model="@response.Body" Document="@Document" CurrentLanguage="@CurrentLanguage" />
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">@Localize("noResponse")</p>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Endpoint Endpoint { get; set; } = null!;
+
+    [Parameter]
+    public ApiDocument Document { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<string> OnShowTypeModal { get; set; }
+
+    [Parameter]
+    public string CurrentLanguage { get; set; } = "zh-CN";
+
+    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
+}

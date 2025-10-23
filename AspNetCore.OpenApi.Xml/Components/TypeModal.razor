@@ -1,0 +1,183 @@
+
+<div class="modal fade show" style="display: block;" tabindex="-1" @onclick="HandleBackdropClick">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" @onclick:stopPropagation="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@(Model.Name ?? Model.Id)</h5>
+                <button type="button" class="btn-close" @onclick="() => OnClose.InvokeAsync()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    @if (!string.IsNullOrEmpty(Model.Namespace))
+                    {
+                        <p class="mb-1"><strong>@Localize("namespace"):</strong> @Model.Namespace</p>
+                    }
+                    <p class="mb-1"><strong>@Localize("type"):</strong> @Model.ModelType</p>
+                    @if (Model.Nullable)
+                    {
+                        <p class="mb-1"><strong>@Localize("nullable"):</strong> @Localize("yes")</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <p class="mb-1"><strong>@Localize("description"):</strong> @Model.Description</p>
+                    }
+                </div>
+
+                @if (Model.ModelType == ModelType.Enum && Model.EnumMembers != null && Model.EnumMembers.Count > 0)
+                {
+                    <h6 class="mb-3">@Localize("enumValues")</h6>
+                    @foreach (var member in Model.EnumMembers)
+                    {
+                        <div class="enum-member">
+                            <div class="enum-member-name">@member.Name = @member.Value</div>
+                            @if (!string.IsNullOrEmpty(member.Description))
+                            {
+                                <div class="enum-member-value">@member.Description</div>
+                            }
+                        </div>
+                    }
+                }
+                else if (Model.Fields != null && Model.Fields.Count > 0)
+                {
+                    <h6 class="mb-3">@Localize("fields")</h6>
+                    <ParametersTable Parameters="@Model.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+                }
+                else if (Model.ElementType != null)
+                {
+                    <h6 class="mb-2">@Localize("elementType")</h6>
+                    <p>@RenderModelType(Model.ElementType)</p>
+                }
+                else if (Model.KeyType != null && Model.ValueType != null)
+                {
+                    <h6 class="mb-2">@Localize("dictionaryType")</h6>
+                    <p><strong>@Localize("keyType"):</strong> @RenderModelType(Model.KeyType)</p>
+                    <p><strong>@Localize("valueType"):</strong> @RenderModelType(Model.ValueType)</p>
+                }
+                else if (Model.TupleElements != null && Model.TupleElements.Count > 0)
+                {
+                    <h6 class="mb-3">@Localize("tupleElements")</h6>
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>@Localize("name")</th>
+                                <th>@Localize("type")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var elem in Model.TupleElements)
+                            {
+                                <tr>
+                                    <td><code>@elem.Name</code></td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(elem.ModelId))
+                                        {
+                                            <span class="type-link" @onclick="() => OnShowTypeModal.InvokeAsync(elem.ModelId)">
+                                                @(elem.Type ?? elem.ModelId)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @(elem.Type ?? "unknown")
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (Model.GenericArguments != null && Model.GenericArguments.Count > 0)
+                {
+                    <h6 class="mb-3">@Localize("genericParams")</h6>
+                    <ul class="list-group">
+                        @foreach (var (arg, idx) in Model.GenericArguments.Select((a, i) => (a, i)))
+                        {
+                            <li class="list-group-item">@(idx + 1). @RenderModelType(arg)</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop fade show"></div>
+
+@code {
+    [Parameter]
+    public ApiModel Model { get; set; } = null!;
+
+    [Parameter]
+    public ApiDocument Document { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnShowTypeModal { get; set; }
+
+    [Parameter]
+    public string CurrentLanguage { get; set; } = "zh-CN";
+
+    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
+
+    private void HandleBackdropClick()
+    {
+        OnClose.InvokeAsync();
+    }
+
+    private MarkupString RenderModelType(ApiModel model)
+    {
+        if (model == null) return new MarkupString("unknown");
+
+        var typeName = model.Name ?? model.Id ?? "unknown";
+
+        if (model.KeyType != null && model.ValueType != null)
+        {
+            var keyTypeName = RenderModelTypeSimple(model.KeyType);
+            var valueTypeName = RenderModelTypeSimple(model.ValueType);
+            typeName = $"{model.Name ?? "Dictionary"}&lt;{keyTypeName}, {valueTypeName}&gt;";
+        }
+        else if (model.ElementType != null)
+        {
+            var elemTypeName = RenderModelTypeSimple(model.ElementType);
+            typeName = $"{model.Name ?? "Array"}&lt;{elemTypeName}&gt;";
+        }
+        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
+        {
+            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
+            typeName = $"{model.Name ?? model.Id}&lt;{genericParams}&gt;";
+        }
+
+        if (!string.IsNullOrEmpty(model.Id))
+        {
+            // For modal, we can't use onclick, so just display the type name
+            return new MarkupString(typeName);
+        }
+        return new MarkupString(typeName);
+    }
+
+    private string RenderModelTypeSimple(ApiModel model)
+    {
+        if (model == null) return "unknown";
+
+        var typeName = model.Name ?? model.Id ?? "unknown";
+
+        if (model.KeyType != null && model.ValueType != null)
+        {
+            var keyTypeName = RenderModelTypeSimple(model.KeyType);
+            var valueTypeName = RenderModelTypeSimple(model.ValueType);
+            typeName = $"{model.Name ?? "Dictionary"}<{keyTypeName}, {valueTypeName}>";
+        }
+        else if (model.ElementType != null)
+        {
+            var elemTypeName = RenderModelTypeSimple(model.ElementType);
+            typeName = $"{model.Name ?? "Array"}<{elemTypeName}>";
+        }
+        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
+        {
+            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
+            typeName = $"{model.Name ?? model.Id}<{genericParams}>";
+        }
+
+        return typeName;
+    }
+}

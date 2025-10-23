@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using AspNetCore.OpenApi.Xml.Components;
 
 namespace AspNetCore.OpenApi.Xml.Extensions;
 
@@ -13,15 +14,12 @@ public static class EndpointRouteBuilderExtensions
     /// <returns>The endpoint route builder for chaining.</returns>
     /// <remarks>
     /// The <c>title</c> and <c>version</c> of the API documentation can be provided via query string parameters,
-    /// for example: <c>/api-doc?title=MyAPI&amp;version=2.0</c>. These values are bound in the Page Model using
-    /// <c>[BindProperty(SupportsGet = true)]</c>.
+    /// for example: <c>/api-doc?title=MyAPI&amp;version=2.0</c>.
     /// </remarks>
     public static IEndpointRouteBuilder MapApiDocument(this IEndpointRouteBuilder endpoints, string pattern = "/api-doc")
     {
-        // Map Razor Pages
-        endpoints.MapRazorPages();
-        // Map the API documentation page to the specified pattern
-        endpoints.MapFallbackToPage(pattern, "/ApiDocumentation");
+        // Map Blazor component endpoints
+        endpoints.MapRazorComponents<ApiDocumentation>();
 
         return endpoints;
     }

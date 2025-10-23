@@ -11,8 +11,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IXmlDocumentationReader, XmlDocumentationReader>();
         services.AddSingleton<IApiXmlDocumentGenerator, ApiXmlDocumentGenerator>();
         
-        // Add Razor Pages support for the UI
-        services.AddRazorPages();
+        // Add Razor Components support for the UI
+        services.AddRazorComponents();
         
         return services;
     }
