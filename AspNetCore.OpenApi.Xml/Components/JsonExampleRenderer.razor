@@ -109,14 +109,14 @@
 
         if (model.ModelType == ModelType.Array || model.ElementType != null)
         {
-            var elementExample = model.ElementType != null ? GenerateJsonExample(model.ElementType, depth + 1, new HashSet<string>(visited)) : "item";
+            var elementExample = model.ElementType != null ? GenerateJsonExample(model.ElementType, depth + 1, visited) : "item";
             return new[] { elementExample };
         }
 
         if (model.ModelType == ModelType.Dictionary || (model.KeyType != null && model.ValueType != null))
         {
-            var keyExample = model.KeyType != null ? GenerateJsonExample(model.KeyType, depth + 1, new HashSet<string>(visited)) : "key";
-            var valueExample = model.ValueType != null ? GenerateJsonExample(model.ValueType, depth + 1, new HashSet<string>(visited)) : "value";
+            var keyExample = model.KeyType != null ? GenerateJsonExample(model.KeyType, depth + 1, visited) : "key";
+            var valueExample = model.ValueType != null ? GenerateJsonExample(model.ValueType, depth + 1, visited) : "value";
             return new Dictionary<string, object?> { [keyExample?.ToString() ?? "key"] = valueExample };
         }
 
@@ -127,7 +127,7 @@
             {
                 var key = elem.Name ?? $"item{idx + 1}";
                 var elemModel = !string.IsNullOrEmpty(elem.ModelId) ? Document.Models.FirstOrDefault(m => m.Id == elem.ModelId) : null;
-                result[key] = elemModel != null ? GenerateJsonExample(elemModel, depth + 1, new HashSet<string>(visited)) : elem.Type ?? "value";
+                result[key] = elemModel != null ? GenerateJsonExample(elemModel, depth + 1, visited) : elem.Type ?? "value";
             }
             return result;
         }
@@ -140,7 +140,7 @@
                 var fieldModel = !string.IsNullOrEmpty(field.ModelId) ? Document.Models.FirstOrDefault(m => m.Id == field.ModelId) : null;
                 if (fieldModel != null)
                 {
-                    result[field.Name ?? "field"] = GenerateJsonExample(fieldModel, depth + 1, new HashSet<string>(visited));
+                    result[field.Name ?? "field"] = GenerateJsonExample(fieldModel, depth + 1, visited);
                 }
                 else
                 {
@@ -159,7 +159,7 @@
 
         if (model.GenericArguments != null && model.GenericArguments.Count > 0)
         {
-            return GenerateJsonExample(model.GenericArguments[0], depth + 1, new HashSet<string>(visited));
+            return GenerateJsonExample(model.GenericArguments[0], depth + 1, visited);
         }
 
         return null;
