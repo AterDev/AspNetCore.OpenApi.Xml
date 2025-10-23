@@ -8,6 +8,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApiXmlDocumentGenerator(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer(); // ensure ApiExplorer is enabled
+        services.AddSingleton<IXmlDocumentationReader, XmlDocumentationReader>();
         services.AddSingleton<IApiXmlDocumentGenerator, ApiXmlDocumentGenerator>();
         services.AddSingleton<IApiDocumentationPageService, ApiDocumentationPageService>();
         return services;

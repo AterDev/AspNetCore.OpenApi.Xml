@@ -19,7 +19,7 @@ public interface IApiXmlDocumentGenerator
     string GenerateXml(string? title = null, string? version = null, bool indented = true, string? encodingName = "utf-8");
 }
 
-public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider provider) : IApiXmlDocumentGenerator
+public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider provider, IXmlDocumentationReader xmlDocReader) : IApiXmlDocumentGenerator
 {
     private readonly Dictionary<Type, ApiModel> _modelCache = new();
     private static readonly HashSet<Type> _primitiveTypes = new(
@@ -33,6 +33,20 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
     public ApiDocument Generate(string? title = null, string? version = null)
     {
         _modelCache.Clear();
+        
+        // Load XML documentation for all loaded assemblies
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            try
+            {
+                xmlDocReader.LoadXmlDocumentation(assembly);
+            }
+            catch
+            {
+                // Ignore assemblies that can't be processed
+            }
+        }
+        
         var doc = new ApiDocument { Title = title ?? "API Documentation", Version = version ?? "1.0" };
         int opIndex = 0;
 
@@ -46,12 +60,19 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 if (api.ActionDescriptor?.RouteValues.TryGetValue("controller", out var controllerName) == true && !string.IsNullOrWhiteSpace(controllerName) && !tags.Contains(controllerName))
                     tags.Add(controllerName);
 
+                // Try to get XML documentation summary
+                string? summary = null;
+                if (api.ActionDescriptor is ControllerActionDescriptor controllerAction)
+                {
+                    summary = xmlDocReader.GetMethodSummary(controllerAction.MethodInfo);
+                }
+
                 var endpoint = new Endpoint
                 {
                     OperationId = operationId,
                     Path = api.RelativePath ?? string.Empty,
                     Method = api.HttpMethod ?? "GET",
-                    Summary = api.ActionDescriptor?.DisplayName,
+                    Summary = summary ?? api.ActionDescriptor?.DisplayName,
                     Description = api.ActionDescriptor?.RouteValues.TryGetValue("action", out var actionName) == true ? actionName : null,
                     Deprecated = api.ActionDescriptor?.EndpointMetadata.OfType<ObsoleteAttribute>().Any() == true,
                     Tags = tags.Count > 0 ? tags : null
@@ -97,6 +118,16 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                             : null
                     };
                     endpoint.Responses.Add(response);
+                }
+                
+                // If no responses were defined, add a default 200 response with application/json
+                if (endpoint.Responses.Count == 0)
+                {
+                    endpoint.Responses.Add(new ApiResponse
+                    {
+                        StatusCode = 200,
+                        ContentType = "application/json"
+                    });
                 }
 
                 doc.Endpoints.Add(endpoint);
