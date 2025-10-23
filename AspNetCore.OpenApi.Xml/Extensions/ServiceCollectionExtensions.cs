@@ -5,7 +5,7 @@ namespace AspNetCore.OpenApi.Xml.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApiXmlDocumentGenerator(this IServiceCollection services)
+    public static IServiceCollection AddApiDocument(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer(); // ensure ApiExplorer is enabled
         services.AddSingleton<IXmlDocumentationReader, XmlDocumentationReader>();

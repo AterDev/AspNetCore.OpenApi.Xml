@@ -6,20 +6,23 @@ namespace AspNetCore.OpenApi.Xml.Extensions;
 public static class EndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Maps the API documentation page at the default route ("/api-doc").
+    /// Maps the API documentation page at the specified route (default: "/api-doc").
     /// </summary>
     /// <param name="endpoints">The endpoint route builder.</param>
+    /// <param name="pattern">The route pattern for the API documentation page (e.g. "/api-doc").</param>
     /// <returns>The endpoint route builder for chaining.</returns>
     /// <remarks>
-    /// The <c>title</c> and <c>version</c> of the API documentation can now be provided via query string parameters,
+    /// The <c>title</c> and <c>version</c> of the API documentation can be provided via query string parameters,
     /// for example: <c>/api-doc?title=MyAPI&amp;version=2.0</c>. These values are bound in the Page Model using
     /// <c>[BindProperty(SupportsGet = true)]</c>.
     /// </remarks>
-    public static IEndpointRouteBuilder MapApiDocumentationPage(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapApiDocument(this IEndpointRouteBuilder endpoints, string pattern = "/api-doc")
     {
-        // Map Razor Pages (which includes our ApiDocumentation page at /api-doc)
+        // Map Razor Pages
         endpoints.MapRazorPages();
-        
+        // Map the API documentation page to the specified pattern
+        endpoints.MapFallbackToPage(pattern, "/ApiDocumentation");
+
         return endpoints;
     }
 }

@@ -1,12 +1,11 @@
 using AspNetCore.OpenApi.Xml.Extensions;
 using AspNetCore.OpenApi.Xml.Services;
-using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // 注册自定义 XML 文档生成器
-builder.Services.AddApiXmlDocumentGenerator();
+builder.Services.AddApiDocument();
 
 var app = builder.Build();
 
@@ -28,7 +27,7 @@ app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
 });
 
 // 映射 API 文档页面
-app.MapApiDocumentationPage();
+app.MapApiDocument();
 
 // 示例根端点
 app.MapGet("/", () => "Demo Web API for XML Doc - Visit /api-doc for documentation page");
