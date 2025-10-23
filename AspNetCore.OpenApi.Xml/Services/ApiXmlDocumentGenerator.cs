@@ -20,7 +20,9 @@ public interface IApiXmlDocumentGenerator
 
 public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider provider, IXmlDocumentationReader xmlDocReader) : IApiXmlDocumentGenerator
 {
-    private readonly Dictionary<Type, ApiModel> _modelCache = [];
+    private const string DefaultTitle = "API Documentation";
+    private const string DefaultVersion = "1.0";
+    
     private static readonly HashSet<Type> _primitiveTypes = new(
         new[]
         {
@@ -29,38 +31,49 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             typeof(DateOnly), typeof(TimeOnly), typeof(TimeSpan)
         });
 
+    private readonly object _lock = new();
     private ApiDocument? _cachedDocument;
     private bool _xmlDocumentationLoaded;
 
     public ApiDocument Generate(string? title = null, string? version = null)
     {
+        var effectiveTitle = title ?? DefaultTitle;
+        var effectiveVersion = version ?? DefaultVersion;
+        
         // Return cached document if already generated with same parameters
-        if (_cachedDocument != null && 
-            _cachedDocument.Title == (title ?? "API Documentation") && 
-            _cachedDocument.Version == (version ?? "1.0"))
+        lock (_lock)
         {
-            return _cachedDocument;
+            if (_cachedDocument != null && 
+                _cachedDocument.Title == effectiveTitle && 
+                _cachedDocument.Version == effectiveVersion)
+            {
+                return _cachedDocument;
+            }
         }
 
-        _modelCache.Clear();
+        // Build a new document - use local model cache for this generation
+        var modelCache = new Dictionary<Type, ApiModel>();
 
         // Load XML documentation only once
-        if (!_xmlDocumentationLoaded)
+        lock (_lock)
         {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            if (!_xmlDocumentationLoaded)
             {
-                try
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
-                    xmlDocReader.LoadXmlDocumentation(assembly);
+                    try
+                    {
+                        xmlDocReader.LoadXmlDocumentation(assembly);
+                    }
+                    catch
+                    {
+                    }
                 }
-                catch
-                {
-                }
+                _xmlDocumentationLoaded = true;
             }
-            _xmlDocumentationLoaded = true;
         }
 
-        var doc = new ApiDocument { Title = title ?? "API Documentation", Version = version ?? "1.0" };
+        var doc = new ApiDocument { Title = effectiveTitle, Version = effectiveVersion };
         int opIndex = 0;
 
         foreach (var group in provider.ApiDescriptionGroups.Items)
@@ -107,7 +120,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                         ApplyValidation(field, a);
 
                     if (NeedsModelReference(param.Type))
-                        field.ModelId = GetOrBuildModel(param.Type).Id;
+                        field.ModelId = GetOrBuildModel(param.Type, modelCache).Id;
 
                     if (param.Source == BindingSource.Path) request.RouteParameters.Add(field);
                     else if (param.Source == BindingSource.Query) request.QueryParameters.Add(field);
@@ -116,7 +129,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 var bodyParam = api.ParameterDescriptions.FirstOrDefault(p => p.Source == BindingSource.Body);
                 if (bodyParam?.Type != null && bodyParam.Type != typeof(void) && NeedsModelReference(bodyParam.Type))
                 {
-                    request.Body = GetOrBuildModel(bodyParam.Type);
+                    request.Body = GetOrBuildModel(bodyParam.Type, modelCache);
                 }
                 endpoint.Request = request;
 
@@ -127,7 +140,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                         StatusCode = resp.StatusCode,
                         ContentType = resp.ApiResponseFormats.FirstOrDefault()?.MediaType ?? "application/json",
                         Body = resp.Type != null && resp.Type != typeof(void) && NeedsModelReference(resp.Type)
-                            ? GetOrBuildModel(resp.Type)
+                            ? GetOrBuildModel(resp.Type, modelCache)
                             : null
                     };
                     endpoint.Responses.Add(response);
@@ -147,12 +160,15 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             }
         }
 
-        doc.Models.AddRange(_modelCache.Values
+        doc.Models.AddRange(modelCache.Values
             .Where(m => m.ModelType != ModelType.Primitive && !(m.ModelType == ModelType.Array && m.ElementType != null && m.ElementType.ModelType == ModelType.Primitive))
             .OrderBy(m => m.Id));
         
         // Cache the generated document
-        _cachedDocument = doc;
+        lock (_lock)
+        {
+            _cachedDocument = doc;
+        }
         return doc;
     }
 
@@ -186,15 +202,15 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
         return !IsSimpleEnumerablePrimitive(type);
     }
 
-    private ApiModel GetOrBuildModel(Type type, int depth = 0)
+    private ApiModel GetOrBuildModel(Type type, Dictionary<Type, ApiModel> modelCache, int depth = 0)
     {
         type = Nullable.GetUnderlyingType(type) ?? type;
-        return BuildModel(type, depth);
+        return BuildModel(type, modelCache, depth);
     }
 
-    private ApiModel BuildModel(Type type, int depth = 0)
+    private ApiModel BuildModel(Type type, Dictionary<Type, ApiModel> modelCache, int depth = 0)
     {
-        if (_modelCache.TryGetValue(type, out var existing)) return existing;
+        if (modelCache.TryGetValue(type, out var existing)) return existing;
         const int maxDepth = 12;
         var nullableUnderlying = Nullable.GetUnderlyingType(type);
         var coreType = nullableUnderlying ?? type;
@@ -208,7 +224,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             Nullable = nullableUnderlying != null,
             ModelType = ModelType.Custom
         };
-        _modelCache[coreType] = model;
+        modelCache[coreType] = model;
 
         if (depth > maxDepth)
         {
@@ -242,7 +258,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             model.ArrayRank = coreType.GetArrayRank();
             var et = coreType.GetElementType();
             if (et != null && NeedsModelReference(et))
-                model.ElementType = GetOrBuildModel(et, depth + 1);
+                model.ElementType = GetOrBuildModel(et, modelCache, depth + 1);
             else if (et != null)
                 model.ElementType = new ApiModel { Id = MapPrimitiveName(et, true), Name = MapPrimitiveName(et, false), ModelType = ModelType.Primitive };
             return model;
@@ -253,8 +269,8 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             model.ModelType = ModelType.Dictionary;
             var iface = coreType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
             var args = iface.GetGenericArguments();
-            model.KeyType = NeedsModelReference(args[0]) ? GetOrBuildModel(args[0], depth + 1) : new ApiModel { Id = MapPrimitiveName(args[0], true), Name = MapPrimitiveName(args[0], false), ModelType = ModelType.Primitive };
-            model.ValueType = NeedsModelReference(args[1]) ? GetOrBuildModel(args[1], depth + 1) : new ApiModel { Id = MapPrimitiveName(args[1], true), Name = MapPrimitiveName(args[1], false), ModelType = ModelType.Primitive };
+            model.KeyType = NeedsModelReference(args[0]) ? GetOrBuildModel(args[0], modelCache, depth + 1) : new ApiModel { Id = MapPrimitiveName(args[0], true), Name = MapPrimitiveName(args[0], false), ModelType = ModelType.Primitive };
+            model.ValueType = NeedsModelReference(args[1]) ? GetOrBuildModel(args[1], modelCache, depth + 1) : new ApiModel { Id = MapPrimitiveName(args[1], true), Name = MapPrimitiveName(args[1], false), ModelType = ModelType.Primitive };
             return model;
         }
 
@@ -270,7 +286,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                     Name = $"Item{i++}",
                     Type = MapPrimitiveName(arg),
                     Required = true,
-                    ModelId = needs ? GetOrBuildModel(arg, depth + 1).Id : null
+                    ModelId = needs ? GetOrBuildModel(arg, modelCache, depth + 1).Id : null
                 });
             }
             return model;
@@ -282,7 +298,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
             foreach (var ga in coreType.GetGenericArguments())
             {
                 if (NeedsModelReference(ga))
-                    model.GenericArguments.Add(GetOrBuildModel(ga, depth + 1));
+                    model.GenericArguments.Add(GetOrBuildModel(ga, modelCache, depth + 1));
             }
             if (typeof(IEnumerable).IsAssignableFrom(coreType))
             {
@@ -290,7 +306,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 if (element != null)
                 {
                     model.ModelType = ModelType.Array;
-                    model.ElementType = NeedsModelReference(element) ? GetOrBuildModel(element, depth + 1) : new ApiModel { Id = MapPrimitiveName(element, true), Name = MapPrimitiveName(element, false), ModelType = ModelType.Primitive };
+                    model.ElementType = NeedsModelReference(element) ? GetOrBuildModel(element, modelCache, depth + 1) : new ApiModel { Id = MapPrimitiveName(element, true), Name = MapPrimitiveName(element, false), ModelType = ModelType.Primitive };
                     return model;
                 }
             }
@@ -314,7 +330,7 @@ public class ApiXmlDocumentGenerator(IApiDescriptionGroupCollectionProvider prov
                 foreach (var a in prop.GetCustomAttributes())
                     ApplyValidation(field, a);
                 if (NeedsModelReference(prop.PropertyType))
-                    field.ModelId = GetOrBuildModel(prop.PropertyType, depth + 1).Id;
+                    field.ModelId = GetOrBuildModel(prop.PropertyType, modelCache, depth + 1).Id;
                 model.Fields.Add(field);
             }
             if (model.Fields.Count == 0) model.ModelType = ModelType.Custom;
