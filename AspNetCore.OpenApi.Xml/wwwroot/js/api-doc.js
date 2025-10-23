@@ -226,20 +226,10 @@ function renderApiList() {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'controller-group';
 
-        // Get unique action names from endpoints
-        const actions = groupedEndpoints[controller].map(e => e.description).filter(Boolean);
-        const uniqueActions = [...new Set(actions)];
-        const actionBadges = uniqueActions.length > 0 && uniqueActions.length <= 10
-            ? uniqueActions.map(action => `<span class="action-badge">${action}</span>`).join(' ')
-            : '';
-
         const headerDiv = document.createElement('div');
         headerDiv.className = 'controller-header';
         headerDiv.innerHTML = `
-            <span class="controller-name">
-                ${controller}
-                ${actionBadges}
-            </span>
+            <span class="controller-name">${controller}</span>
             <i class="bi bi-chevron-down controller-chevron"></i>
         `;
 
@@ -505,8 +495,8 @@ function renderJsonExample(model) {
     try {
         const jsonString = JSON.stringify(example, null, 2);
         return `
-            <div class="mt-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <strong class="text-secondary">${t('responseExample')}</strong>
                     <button class="btn btn-sm btn-outline-secondary copy-json" onclick="copyJsonExample(this)" data-json="${escapeHtml(jsonString)}">
                         <i class="bi bi-clipboard"></i> Copy
