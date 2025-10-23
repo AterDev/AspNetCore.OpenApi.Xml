@@ -1,0 +1,173 @@
+@page "/ApiDocumentation"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject IApiXmlDocumentGenerator Generator
+
+<PageTitle>@Document.Title - API Documentation</PageTitle>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>@Document.Title</h1>
+            <div class="sidebar-version">
+                <i class="bi bi-tag"></i> <span>@Localize("version")</span>: @Document.Version
+            </div>
+            <div class="header-controls">
+                <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
+                    <i class="bi @(IsDarkTheme ? "bi-sun-fill" : "bi-moon-fill")"></i>
+                </button>
+                <button class="lang-toggle" @onclick="ToggleLanguage" title="Switch language">
+                    @(CurrentLanguage == "zh-CN" ? "EN" : "中文")
+                </button>
+            </div>
+        </div>
+        <div class="search-container">
+            <input type="text" @bind="SearchText" @bind:event="oninput" class="search-input" placeholder="@Localize("searchEndpoints")" />
+            <i class="bi bi-search search-icon"></i>
+        </div>
+        <div id="api-list" class="p-0">
+            <EndpointList Endpoints="@FilteredEndpoints" OnEndpointSelected="@SelectEndpoint" SelectedEndpoint="@SelectedEndpoint" />
+        </div>
+    </aside>
+    <main class="main-content">
+        @if (SelectedEndpoint == null)
+        {
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-text"></i>
+                <h2>@Localize("apiDoc")</h2>
+                <p class="text-muted">@Localize("selectEndpoint")</p>
+            </div>
+        }
+        else
+        {
+            <EndpointDetail Endpoint="@SelectedEndpoint" Document="@Document" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+        }
+    </main>
+</div>
+
+@if (ShowModal && SelectedModel != null)
+{
+    <TypeModal Model="@SelectedModel" Document="@Document" OnClose="@CloseTypeModal" OnShowTypeModal="@ShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+}
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Title { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Version { get; set; }
+
+    private ApiDocument Document { get; set; } = new();
+    private Endpoint? SelectedEndpoint { get; set; }
+    private ApiModel? SelectedModel { get; set; }
+    private bool ShowModal { get; set; }
+    private string SearchText { get; set; } = string.Empty;
+    private string CurrentLanguage { get; set; } = "zh-CN";
+    private bool IsDarkTheme { get; set; }
+
+    private IEnumerable<Endpoint> FilteredEndpoints
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+                return Document.Endpoints;
+
+            var search = SearchText.ToLower();
+            return Document.Endpoints.Where(e =>
+                (e.Path?.ToLower().Contains(search) ?? false) ||
+                (e.Summary?.ToLower().Contains(search) ?? false) ||
+                (e.Description?.ToLower().Contains(search) ?? false) ||
+                (e.Method?.ToLower().Contains(search) ?? false)
+            );
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Document = Generator.Generate(
+            Title ?? "API Documentation",
+            Version ?? "1.0"
+        );
+
+        // Load theme and language from localStorage via JS
+        CurrentLanguage = "zh-CN"; // Default, will be updated from localStorage
+        IsDarkTheme = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load theme from localStorage
+                var theme = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "theme");
+                IsDarkTheme = theme == "dark";
+
+                // Load language from localStorage
+                var lang = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "lang");
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    CurrentLanguage = lang;
+                }
+                else
+                {
+                    // Use browser language
+                    var browserLang = await JSRuntime.InvokeAsync<string>("navigator.language");
+                    CurrentLanguage = browserLang?.StartsWith("zh") == true ? "zh-CN" : "en-US";
+                }
+
+                // Apply theme
+                await JSRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{(IsDarkTheme ? "dark" : "light")}')");
+
+                StateHasChanged();
+            }
+            catch
+            {
+                // Ignore JS interop errors during prerendering
+            }
+        }
+    }
+
+    private void SelectEndpoint(Endpoint endpoint)
+    {
+        SelectedEndpoint = endpoint;
+    }
+
+    private void ShowTypeModal(string modelId)
+    {
+        var model = Document.Models.FirstOrDefault(m => m.Id == modelId);
+        if (model != null)
+        {
+            SelectedModel = model;
+            ShowModal = true;
+        }
+    }
+
+    private void CloseTypeModal()
+    {
+        ShowModal = false;
+        SelectedModel = null;
+    }
+
+    private async Task ToggleTheme()
+    {
+        IsDarkTheme = !IsDarkTheme;
+        var theme = IsDarkTheme ? "dark" : "light";
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "theme", theme);
+        await JSRuntime.InvokeVoidAsync("eval", $"document.documentElement.setAttribute('data-theme', '{theme}')");
+    }
+
+    private async Task ToggleLanguage()
+    {
+        CurrentLanguage = CurrentLanguage == "zh-CN" ? "en-US" : "zh-CN";
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "lang", CurrentLanguage);
+    }
+
+    private string Localize(string key)
+    {
+        return LocalizationService.Localize(key, CurrentLanguage);
+    }
+}

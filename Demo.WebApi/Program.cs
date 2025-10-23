@@ -16,8 +16,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Enable static files for Razor Pages
+// Enable static files for Blazor
 app.UseStaticFiles();
+
+// Enable antiforgery middleware for Blazor
+app.UseAntiforgery();
 
 // 暴露 XML 文档端点
 app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
@@ -30,7 +33,7 @@ app.MapGet("/__api-doc.xml", (IApiXmlDocumentGenerator gen) =>
 app.MapApiDocument();
 
 // 示例根端点
-app.MapGet("/", () => "Demo Web API for XML Doc - Visit /api-doc for documentation page");
+app.MapGet("/", () => "Demo Web API for XML Doc - Visit /ApiDocumentation for documentation page");
 
 app.MapControllers();
 
