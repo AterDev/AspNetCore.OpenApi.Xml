@@ -66,15 +66,15 @@ public static class ModelDisplayHelper
         // Handle Dictionary types
         if (model.KeyType != null && model.ValueType != null)
         {
-            var keyTypeName = GetTypeDisplayName(model.KeyType, depth + 1, maxDepth);
-            var valueTypeName = GetTypeDisplayName(model.ValueType, depth + 1, maxDepth);
+            var keyTypeName = GetTypeDisplayNameHtml(model.KeyType, depth + 1, maxDepth);
+            var valueTypeName = GetTypeDisplayNameHtml(model.ValueType, depth + 1, maxDepth);
             return $"{model.Name ?? "Dictionary"}&lt;{keyTypeName}, {valueTypeName}&gt;";
         }
         
         // Handle Array/List types
         if (model.ElementType != null)
         {
-            var elemTypeName = GetTypeDisplayName(model.ElementType, depth + 1, maxDepth);
+            var elemTypeName = GetTypeDisplayNameHtml(model.ElementType, depth + 1, maxDepth);
             return $"{model.Name ?? "Array"}&lt;{elemTypeName}&gt;";
         }
         
@@ -82,7 +82,7 @@ public static class ModelDisplayHelper
         if (model.GenericArguments != null && model.GenericArguments.Count > 0)
         {
             var genericParams = string.Join(", ", 
-                model.GenericArguments.Select(arg => GetTypeDisplayName(arg, depth + 1, maxDepth)));
+                model.GenericArguments.Select(arg => GetTypeDisplayNameHtml(arg, depth + 1, maxDepth)));
             return $"{model.Name ?? model.Id}&lt;{genericParams}&gt;";
         }
 
