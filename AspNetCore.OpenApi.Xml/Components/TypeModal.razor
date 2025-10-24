@@ -1,4 +1,3 @@
-
 <div class="modal fade show" style="display: block;" tabindex="-1" @onclick="HandleBackdropClick">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" @onclick:stopPropagation="true">
         <div class="modal-content">
@@ -40,18 +39,18 @@
                 else if (Model.Fields != null && Model.Fields.Count > 0)
                 {
                     <h6 class="mb-3">@Localize("fields")</h6>
-                    <ParametersTable Parameters="@Model.Fields" OnShowTypeModal="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
+                    <PropertiesTable Fields="@Model.Fields" OnTypeClick="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
                 }
                 else if (Model.ElementType != null)
                 {
                     <h6 class="mb-2">@Localize("elementType")</h6>
-                    <p>@RenderModelType(Model.ElementType)</p>
+                    <p>@RenderModelTypeText(Model.ElementType)</p>
                 }
                 else if (Model.KeyType != null && Model.ValueType != null)
                 {
                     <h6 class="mb-2">@Localize("dictionaryType")</h6>
-                    <p><strong>@Localize("keyType"):</strong> @RenderModelType(Model.KeyType)</p>
-                    <p><strong>@Localize("valueType"):</strong> @RenderModelType(Model.ValueType)</p>
+                    <p><strong>@Localize("keyType"):</strong> @RenderModelTypeText(Model.KeyType)</p>
+                    <p><strong>@Localize("valueType"):</strong> @RenderModelTypeText(Model.ValueType)</p>
                 }
                 else if (Model.TupleElements != null && Model.TupleElements.Count > 0)
                 {
@@ -91,7 +90,7 @@
                     <ul class="list-group">
                         @foreach (var (arg, idx) in Model.GenericArguments.Select((a, i) => (a, i)))
                         {
-                            <li class="list-group-item">@(idx + 1). @RenderModelType(arg)</li>
+                            <li class="list-group-item">@(idx + 1). @RenderModelTypeText(arg)</li>
                         }
                     </ul>
                 }
@@ -124,60 +123,11 @@
         OnClose.InvokeAsync();
     }
 
-    private MarkupString RenderModelType(ApiModel model)
+    /// <summary>
+    /// Renders a model type as plain text (no clickable link)
+    /// </summary>
+    private string RenderModelTypeText(ApiModel? model)
     {
-        if (model == null) return new MarkupString("unknown");
-
-        var typeName = model.Name ?? model.Id ?? "unknown";
-
-        if (model.KeyType != null && model.ValueType != null)
-        {
-            var keyTypeName = RenderModelTypeSimple(model.KeyType);
-            var valueTypeName = RenderModelTypeSimple(model.ValueType);
-            typeName = $"{model.Name ?? "Dictionary"}&lt;{keyTypeName}, {valueTypeName}&gt;";
-        }
-        else if (model.ElementType != null)
-        {
-            var elemTypeName = RenderModelTypeSimple(model.ElementType);
-            typeName = $"{model.Name ?? "Array"}&lt;{elemTypeName}&gt;";
-        }
-        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
-        {
-            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
-            typeName = $"{model.Name ?? model.Id}&lt;{genericParams}&gt;";
-        }
-
-        if (!string.IsNullOrEmpty(model.Id))
-        {
-            // For modal, we can't use onclick, so just display the type name
-            return new MarkupString(typeName);
-        }
-        return new MarkupString(typeName);
-    }
-
-    private string RenderModelTypeSimple(ApiModel model)
-    {
-        if (model == null) return "unknown";
-
-        var typeName = model.Name ?? model.Id ?? "unknown";
-
-        if (model.KeyType != null && model.ValueType != null)
-        {
-            var keyTypeName = RenderModelTypeSimple(model.KeyType);
-            var valueTypeName = RenderModelTypeSimple(model.ValueType);
-            typeName = $"{model.Name ?? "Dictionary"}<{keyTypeName}, {valueTypeName}>";
-        }
-        else if (model.ElementType != null)
-        {
-            var elemTypeName = RenderModelTypeSimple(model.ElementType);
-            typeName = $"{model.Name ?? "Array"}<{elemTypeName}>";
-        }
-        else if (model.GenericArguments != null && model.GenericArguments.Count > 0)
-        {
-            var genericParams = string.Join(", ", model.GenericArguments.Select(RenderModelTypeSimple));
-            typeName = $"{model.Name ?? model.Id}<{genericParams}>";
-        }
-
-        return typeName;
+        return ModelDisplayHelper.GetTypeDisplayNameHtml(model);
     }
 }
