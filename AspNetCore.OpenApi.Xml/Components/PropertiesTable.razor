@@ -1,0 +1,79 @@
+@if (Fields == null || Fields.Count == 0)
+{
+    <p class="text-muted p-3 mb-0">@Localize("noParams")</p>
+}
+else
+{
+    <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 25%">@Localize("paramName")</th>
+                <th style="width: 20%">@Localize("type")</th>
+                <th style="width: 15%">@Localize("required")</th>
+                <th style="width: 40%">@Localize("description")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var field in Fields)
+            {
+                <tr>
+                    <td><code>@field.Name</code></td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(field.ModelId))
+                        {
+                            <span class="type-link" @onclick="() => OnTypeClick.InvokeAsync(field.ModelId)">
+                                @(field.Type ?? field.ModelId)
+                            </span>
+                        }
+                        else
+                        {
+                            @(field.Type ?? "any")
+                        }
+                    </td>
+                    <td>
+                        @if (field.Required)
+                        {
+                            <span class="badge bg-danger">@Localize("required")</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@Localize("optional")</span>
+                        }
+                    </td>
+                    <td>
+                        @(field.Description ?? "-")
+                        @{
+                            var validationText = ModelDisplayHelper.GetValidationTextLocalized(field, CurrentLanguage);
+                            if (!string.IsNullOrEmpty(validationText))
+                            {
+                                <div class="validation-text">@validationText</div>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    /// <summary>
+    /// The list of fields to display in the table
+    /// </summary>
+    [Parameter]
+    public List<ApiField> Fields { get; set; } = [];
+
+    /// <summary>
+    /// Event callback when a type link is clicked, passing the model ID
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnTypeClick { get; set; }
+
+    /// <summary>
+    /// Current language for localization (e.g., "zh-CN", "en-US")
+    /// </summary>
+    [Parameter]
+    public string CurrentLanguage { get; set; } = "zh-CN";
+
+    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
+}

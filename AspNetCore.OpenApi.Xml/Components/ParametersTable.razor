@@ -1,55 +1,4 @@
-
-@if (Parameters == null || Parameters.Count == 0)
-{
-    <p class="text-muted p-3 mb-0">@Localize("noParams")</p>
-}
-else
-{
-    <table class="table table-sm table-hover mb-0">
-        <thead class="table-light">
-            <tr>
-                <th style="width: 25%">@Localize("paramName")</th>
-                <th style="width: 20%">@Localize("type")</th>
-                <th style="width: 15%">@Localize("required")</th>
-                <th style="width: 40%">@Localize("description")</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var param in Parameters)
-            {
-                <tr>
-                    <td><code>@param.Name</code></td>
-                    <td>
-                        @if (!string.IsNullOrEmpty(param.ModelId))
-                        {
-                            <span class="type-link" @onclick="() => OnShowTypeModal.InvokeAsync(param.ModelId)">
-                                @(param.Type ?? param.ModelId)
-                            </span>
-                        }
-                        else
-                        {
-                            @(param.Type ?? "any")
-                        }
-                    </td>
-                    <td>
-                        @if (param.Required)
-                        {
-                            <span class="badge bg-danger">@Localize("required")</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">@Localize("optional")</span>
-                        }
-                    </td>
-                    <td>
-                        @(param.Description ?? "-")
-                        @RenderValidation(param)
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+<PropertiesTable Fields="@Parameters" OnTypeClick="@OnShowTypeModal" CurrentLanguage="@CurrentLanguage" />
 
 @code {
     [Parameter]
@@ -60,22 +9,4 @@ else
 
     [Parameter]
     public string CurrentLanguage { get; set; } = "zh-CN";
-
-    private string Localize(string key) => LocalizationService.Localize(key, CurrentLanguage);
-
-    private MarkupString RenderValidation(ApiField field)
-    {
-        var validations = new List<string>();
-        if (field.MinLength.HasValue) validations.Add($"最小长度: {field.MinLength}");
-        if (field.MaxLength.HasValue) validations.Add($"最大长度: {field.MaxLength}");
-        if (!string.IsNullOrEmpty(field.Minimum)) validations.Add($"最小值: {field.Minimum}");
-        if (!string.IsNullOrEmpty(field.Maximum)) validations.Add($"最大值: {field.Maximum}");
-        if (!string.IsNullOrEmpty(field.Pattern)) validations.Add($"模式: {field.Pattern}");
-        
-        if (validations.Count > 0)
-        {
-            return new MarkupString($"<div class=\"validation-text\">{string.Join(", ", validations)}</div>");
-        }
-        return new MarkupString(string.Empty);
-    }
 }
